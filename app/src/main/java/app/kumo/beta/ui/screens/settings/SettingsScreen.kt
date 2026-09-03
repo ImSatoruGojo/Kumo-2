@@ -32,13 +32,17 @@ import app.kumo.beta.data.local.*
 enum class SettingsSubmenu(val title: String, val icon: ImageVector) {
     GENERAL("General", Icons.Default.Tune),
     APPEARANCE("Appearance & Theme", Icons.Default.Palette),
-    HOME("Home Screen", Icons.Default.Home),
-    PLAYER("Player Settings", Icons.Default.PlayCircle),
+    HOME("Home Customization", Icons.Default.Home),
+    PLAYER("Player & Decoders", Icons.Default.PlayCircle),
     LIBRARY("Library & Tags", Icons.Default.Bookmark),
+    MANGA("Manga & Reader", Icons.Default.Book),
     DOWNLOADS("Downloads Manager", Icons.Default.Download),
     EXTENSIONS("Extensions & Providers", Icons.Default.Extension),
     STORAGE("Storage & Cache", Icons.Default.Storage),
-    CONTENT("Content & Filters", Icons.Default.Shield),
+    CONTENT("Content Preferences", Icons.Default.Translate),
+    NETWORK("Network & Data", Icons.Default.Wifi),
+    PRIVACY("Privacy & Security", Icons.Default.Security),
+    BACKUP("Backup & Restore", Icons.Default.Backup),
     CHANGELOG("Changelog", Icons.Default.History),
     ADVANCED("Advanced", Icons.Default.Build),
     ABOUT("About Kumo", Icons.Default.Info)
@@ -83,10 +87,14 @@ fun SettingsScreen(
                     SettingsSubmenu.HOME -> HomeSettings()
                     SettingsSubmenu.PLAYER -> PlayerSettings()
                     SettingsSubmenu.LIBRARY -> LibrarySettings()
+                    SettingsSubmenu.MANGA -> MangaReaderSettings()
                     SettingsSubmenu.DOWNLOADS -> DownloadsManagerScreen()
                     SettingsSubmenu.EXTENSIONS -> ExtensionsManagerScreen()
                     SettingsSubmenu.STORAGE -> StorageSettings()
                     SettingsSubmenu.CONTENT -> ContentSettings()
+                    SettingsSubmenu.NETWORK -> NetworkSettings()
+                    SettingsSubmenu.PRIVACY -> PrivacySettings()
+                    SettingsSubmenu.BACKUP -> BackupSettings()
                     SettingsSubmenu.CHANGELOG -> ChangelogSettings()
                     SettingsSubmenu.ADVANCED -> AdvancedSettings()
                     SettingsSubmenu.ABOUT -> AboutSettings()
@@ -105,7 +113,6 @@ fun MainSettingsMenu(onSelectSubmenu: (SettingsSubmenu) -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Branding Banner Header
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -130,7 +137,7 @@ fun MainSettingsMenu(onSelectSubmenu: (SettingsSubmenu) -> Unit) {
                         .padding(16.dp)
                 ) {
                     Text("Kumo Beta 0.2.0-v2", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("Media discovery & streaming engine", color = Color.LightGray, fontSize = 12.sp)
+                    Text("Universal Media Discovery & Streaming Engine", color = Color.LightGray, fontSize = 12.sp)
                 }
             }
         }
@@ -174,20 +181,43 @@ fun MainSettingsMenu(onSelectSubmenu: (SettingsSubmenu) -> Unit) {
 fun GeneralSettings() {
     val context = LocalContext.current
     val prefs = remember { PreferencesManager(context) }
-    var language by remember { mutableStateOf(prefs.appLanguage) }
-    var dataSaving by remember { mutableStateOf(prefs.dataSavingEnabled) }
+    var startupPage by remember { mutableStateOf(prefs.startupPage) }
+    var rememberScreen by remember { mutableStateOf(prefs.rememberLastScreen) }
+    var confirmExit by remember { mutableStateOf(prefs.confirmExit) }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Text("General Preferences", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
 
-        SettingSwitchRow("Data Saver Mode", dataSaving) {
-            dataSaving = it
-            prefs.dataSavingEnabled = it
+        Text("Startup Page", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+            listOf("Home", "Search", "Library").forEach { page ->
+                FilterChip(
+                    selected = startupPage == page,
+                    onClick = {
+                        startupPage = page
+                        prefs.startupPage = page
+                    },
+                    label = { Text(page) }
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
-        Text("App Language: $language", fontSize = 14.sp)
+        SettingSwitchRow("Remember Last Screen on Launch", rememberScreen) {
+            rememberScreen = it
+            prefs.rememberLastScreen = it
+        }
+
+        SettingSwitchRow("Confirm Before Exiting App", confirmExit) {
+            confirmExit = it
+            prefs.confirmExit = it
+        }
     }
 }
 
@@ -396,8 +426,15 @@ fun HomeSettings() {
     var showCW by remember { mutableStateOf(prefs.showContinueWatching) }
     var showPop by remember { mutableStateOf(prefs.showPopular) }
     var showTrend by remember { mutableStateOf(prefs.showTrending) }
+    var showRec by remember { mutableStateOf(prefs.showRecommended) }
+    var filterMode by remember { mutableStateOf(prefs.homeFilterMode) }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Text("Home Sections Visibility", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -413,6 +450,27 @@ fun HomeSettings() {
             showTrend = it
             prefs.showTrending = it
         }
+        SettingSwitchRow("Recommended Highlights", showRec) {
+            showRec = it
+            prefs.showRecommended = it
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Content Focus Filter", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("ALL", "ANIME", "MOVIES", "MANGA").forEach { mode ->
+                FilterChip(
+                    selected = filterMode == mode,
+                    onClick = {
+                        filterMode = mode
+                        prefs.homeFilterMode = mode
+                    },
+                    label = { Text(mode) }
+                )
+            }
+        }
     }
 }
 
@@ -422,10 +480,18 @@ fun PlayerSettings() {
     val prefs = remember { PreferencesManager(context) }
 
     var autoSkipIntro by remember { mutableStateOf(prefs.autoSkipIntro) }
+    var skipDuration by remember { mutableStateOf(prefs.skipIntroDuration) }
+    var seekDuration by remember { mutableStateOf(prefs.seekDuration) }
     var autoplayNext by remember { mutableStateOf(prefs.autoplayNext) }
     var screenLock by remember { mutableStateOf(prefs.playerScreenLock) }
+    var decoder by remember { mutableStateOf(prefs.playerDecoder) }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Text("Player Preferences", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -433,13 +499,97 @@ fun PlayerSettings() {
             autoSkipIntro = it
             prefs.autoSkipIntro = it
         }
+
+        Text("Double-Tap Seek Duration: ${seekDuration}s", fontSize = 14.sp)
+        Slider(
+            value = seekDuration.toFloat(),
+            onValueChange = {
+                seekDuration = it.toInt()
+                prefs.seekDuration = it.toInt()
+            },
+            valueRange = 5f..30f,
+            steps = 4
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
         SettingSwitchRow("Autoplay Next Episode", autoplayNext) {
             autoplayNext = it
             prefs.autoplayNext = it
         }
-        SettingSwitchRow("Enable Screen Touch Lock", screenLock) {
+
+        SettingSwitchRow("Enable Touch Lock Overlay", screenLock) {
             screenLock = it
             prefs.playerScreenLock = it
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("Decoder Hardware Acceleration", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+            listOf("Hardware Accelerated", "Software Fallback").forEach { dec ->
+                FilterChip(
+                    selected = decoder == dec,
+                    onClick = {
+                        decoder = dec
+                        prefs.playerDecoder = dec
+                    },
+                    label = { Text(dec) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MangaReaderSettings() {
+    val context = LocalContext.current
+    val prefs = remember { PreferencesManager(context) }
+
+    var readingMode by remember { mutableStateOf(prefs.readingMode) }
+    var readingDirection by remember { mutableStateOf(prefs.readingDirection) }
+    var doubleTapZoom by remember { mutableStateOf(prefs.doubleTapZoom) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Text("Manga & Reader Options", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("Default Reading Mode", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+            listOf("Webtoon (Vertical)", "Paged Single", "Continuous").forEach { mode ->
+                FilterChip(
+                    selected = readingMode == mode,
+                    onClick = {
+                        readingMode = mode
+                        prefs.readingMode = mode
+                    },
+                    label = { Text(mode) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("Reading Direction", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+            listOf("Right to Left", "Left to Right").forEach { dir ->
+                FilterChip(
+                    selected = readingDirection == dir,
+                    onClick = {
+                        readingDirection = dir
+                        prefs.readingDirection = dir
+                    },
+                    label = { Text(dir) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        SettingSwitchRow("Double-Tap to Zoom Page", doubleTapZoom) {
+            doubleTapZoom = it
+            prefs.doubleTapZoom = it
         }
     }
 }
@@ -560,7 +710,6 @@ fun ExtensionsManagerScreen() {
 @Composable
 fun StorageSettings() {
     val context = LocalContext.current
-    val prefs = remember { PreferencesManager(context) }
     var cacheSize by remember { mutableStateOf("14.2 MB") }
     var cleared by remember { mutableStateOf(false) }
 
@@ -587,21 +736,69 @@ fun ContentSettings() {
     val context = LocalContext.current
     val prefs = remember { PreferencesManager(context) }
 
-    var nsfwEnabled by remember { mutableStateOf(prefs.nsfwEnabled) }
-    var spoilerWarnings by remember { mutableStateOf(prefs.showSpoilerWarnings) }
+    var animeLang by remember { mutableStateOf(prefs.preferredAnimeLang) }
+    var dubSub by remember { mutableStateOf(prefs.dubSubPriority) }
 
     Column(modifier = Modifier.padding(16.dp)) {
-        Text("Content & Safety Filters", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(12.dp))
+        Text("Content Audio & Subtitle Priorities", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
 
-        SettingSwitchRow("Allow Adult / 18+ Content", nsfwEnabled) {
-            nsfwEnabled = it
-            prefs.nsfwEnabled = it
+        Text("Audio / Sub Priority", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+            listOf("SUB", "DUB").forEach { option ->
+                FilterChip(
+                    selected = dubSub == option,
+                    onClick = {
+                        dubSub = option
+                        prefs.dubSubPriority = option
+                    },
+                    label = { Text(option) }
+                )
+            }
         }
+    }
+}
 
-        SettingSwitchRow("Show Episode Spoiler Warnings", spoilerWarnings) {
-            spoilerWarnings = it
-            prefs.showSpoilerWarnings = it
+@Composable
+fun NetworkSettings() {
+    val context = LocalContext.current
+    val prefs = remember { PreferencesManager(context) }
+
+    var wifiOnly by remember { mutableStateOf(prefs.wifiOnlyDownloads) }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Network & Data Saver", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingSwitchRow("Wi-Fi Only Downloads", wifiOnly) {
+            wifiOnly = it
+            prefs.wifiOnlyDownloads = it
+        }
+    }
+}
+
+@Composable
+fun PrivacySettings() {
+    val context = LocalContext.current
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Privacy & Security", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = {}) {
+            Text("Clear Search & Watch History")
+        }
+    }
+}
+
+@Composable
+fun BackupSettings() {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Backup & Restore Architecture", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(onClick = {}) {
+            Text("Export Settings & Library (JSON)")
         }
     }
 }
@@ -621,14 +818,13 @@ fun ChangelogSettings() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Version 0.2.0-v2 (Kumo V2 Overhaul)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Version 0.2.0-v2 (Kumo V2 Universal Pass)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("• Brand new Kumo branding visual identity.", fontSize = 14.sp)
-                Text("• Added Custom HEX Color Picker with live preview.", fontSize = 14.sp)
-                Text("• Added Downloads Manager & Queue UI architecture.", fontSize = 14.sp)
-                Text("• Added Extensions & Media Providers management screen.", fontSize = 14.sp)
+                Text("• Integrated Universal Settings architecture inspired by Aniyomi & Mihon.", fontSize = 14.sp)
+                Text("• Added Splash Screen with Starfield Kumo Branding.", fontSize = 14.sp)
+                Text("• Added Custom HEX Color Picker with live dynamic preview.", fontSize = 14.sp)
+                Text("• Added Downloads Manager and Provider Extensions Screen.", fontSize = 14.sp)
                 Text("• Added Search History and expanded compact filter options.", fontSize = 14.sp)
-                Text("• Added Storage & Cache cleanup tools and Content Safety controls.", fontSize = 14.sp)
             }
         }
     }
@@ -655,7 +851,7 @@ fun AdvancedSettings() {
 @Composable
 fun AboutSettings() {
     Column(modifier = Modifier.padding(16.dp)) {
-        Text("Kumo Beta V2", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Kumo Universal Media Engine", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(6.dp))
         Text("Version 0.2.0-v2", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(16.dp))
