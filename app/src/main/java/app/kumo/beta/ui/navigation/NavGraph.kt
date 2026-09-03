@@ -48,12 +48,16 @@ fun KumoNavGraph() {
     val prefs = remember { PreferencesManager(context) }
     var currentThemeMode by remember { mutableStateOf(prefs.themeMode) }
     var currentAccentColor by remember { mutableStateOf(prefs.accentColor) }
+    var customHexColor by remember { mutableStateOf(prefs.customHexColor) }
+    var useCustomHex by remember { mutableStateOf(prefs.useCustomHex) }
 
     val showBottomBar = bottomScreens.any { it.route == currentRoute }
 
     app.kumo.beta.ui.theme.KumoTheme(
         themeMode = currentThemeMode,
-        accentOption = currentAccentColor
+        accentOption = currentAccentColor,
+        customHex = customHexColor,
+        useCustomHex = useCustomHex
     ) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
@@ -128,9 +132,11 @@ fun KumoNavGraph() {
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen(
-                        onThemeChanged = { newTheme, newAccent ->
+                        onThemeChanged = { newTheme, newAccent, newCustomHex, newUseCustom ->
                             currentThemeMode = newTheme
                             currentAccentColor = newAccent
+                            customHexColor = newCustomHex ?: "#7C4DFF"
+                            useCustomHex = newUseCustom
                         }
                     )
                 }

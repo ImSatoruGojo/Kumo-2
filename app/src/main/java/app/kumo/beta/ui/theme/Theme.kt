@@ -23,13 +23,41 @@ val KumoText = Color(0xFFFFFFFF)
 val KumoTextSecondary = Color(0xFFAAAAAA)
 val KumoBeta = Color(0xFFFFB020)
 
+fun parseColorHex(hex: String): Long {
+    val cleanHex = hex.trim().uppercase()
+    return when (cleanHex.length) {
+        6 -> ("FF" + cleanHex).toLong(16)
+        8 -> cleanHex.toLong(16)
+        3 -> {
+            val r = cleanHex[0]
+            val g = cleanHex[1]
+            val b = cleanHex[2]
+            ("FF$r$r$g$g$b$b").toLong(16)
+        }
+        else -> 0xFF6D4AFF
+    }
+}
+
 @Composable
 fun KumoTheme(
     themeMode: AppThemeMode = AppThemeMode.DARK,
     accentOption: AccentColorOption = AccentColorOption.PURPLE,
+    customHex: String? = null,
+    useCustomHex: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val accentColor = Color(accentOption.hexColor)
+    val accentColor = if (useCustomHex && !customHex.isNullOrBlank()) {
+        try {
+            val hex = customHex.removePrefix("#")
+            val colorInt = parseColorHex(hex)
+            Color(colorInt)
+        } catch (e: Exception) {
+            Color(accentOption.hexColor)
+        }
+    } else {
+        Color(accentOption.hexColor)
+    }
+
     val isSystemDark = isSystemInDarkTheme()
 
     val isDark = when (themeMode) {
