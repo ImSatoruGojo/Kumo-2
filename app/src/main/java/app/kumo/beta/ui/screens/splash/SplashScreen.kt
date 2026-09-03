@@ -55,19 +55,28 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "KUMO",
+                text = "Kumo",
                 color = Color.White,
-                fontSize = 32.sp,
+                fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 4.sp
+                letterSpacing = 2.sp
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                color = Color.White,
+                strokeWidth = 4.dp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Anime • Movies • Manga",
-                color = Color(0xFFAAAAAA),
-                fontSize = 14.sp
+                text = "Loading...",
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
             )
         }
     }

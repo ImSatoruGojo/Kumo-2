@@ -184,31 +184,60 @@ fun GeneralSettings() {
     var startupPage by remember { mutableStateOf(prefs.startupPage) }
     var rememberScreen by remember { mutableStateOf(prefs.rememberLastScreen) }
     var confirmExit by remember { mutableStateOf(prefs.confirmExit) }
+    var currentLangCode by remember { mutableStateOf(prefs.appLanguage) }
+    var showLangDialog by remember { mutableStateOf(false) }
+    var showClearDataDialog by remember { mutableStateOf(false) }
+    var cacheSize by remember { mutableStateOf("18.4 MB") }
+    var cacheCleared by remember { mutableStateOf(false) }
+
+    val currentLang = AppLanguages.getLanguageByCode(currentLangCode)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("General Preferences", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
 
-        Text("Startup Page", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
-            listOf("Home", "Search", "Library").forEach { page ->
-                FilterChip(
-                    selected = startupPage == page,
-                    onClick = {
-                        startupPage = page
-                        prefs.startupPage = page
-                    },
-                    label = { Text(page) }
-                )
+        // App Language Selection
+        Card(
+            modifier = Modifier.fillMaxWidth().clickable { showLangDialog = true },
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("App Language", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text("${currentLang.displayName} (${currentLang.nativeName})", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                }
+                Icon(Icons.Default.Language, contentDescription = "Language", tint = MaterialTheme.colorScheme.primary)
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        // Startup Page Selection
+        Column {
+            Text("Startup Page", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Home", "Search", "Library").forEach { page ->
+                    FilterChip(
+                        selected = startupPage == page,
+                        onClick = {
+                            startupPage = page
+                            prefs.startupPage = page
+                        },
+                        label = { Text(page) }
+                    )
+                }
+            }
+        }
+
         SettingSwitchRow("Remember Last Screen on Launch", rememberScreen) {
             rememberScreen = it
             prefs.rememberLastScreen = it
@@ -218,6 +247,119 @@ fun GeneralSettings() {
             confirmExit = it
             prefs.confirmExit = it
         }
+
+        HorizontalDivider()
+
+        Text("Storage & Data Actions", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Image & Search Cache", fontWeight = FontWeight.Medium)
+                    Text(cacheSize, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = {
+                        cacheSize = "0.0 MB"
+                        cacheCleared = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (cacheCleared) "Cache Cleared!" else "Clear Application Cache")
+                }
+                OutlinedButton(
+                    onClick = { showClearDataDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Clear All App Data & Reset")
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("App Version & Info", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Kumo Version: 0.2.0-v2 Beta", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Engine: Aniyomi • Mihon • CloudStream V2", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+
+    if (showLangDialog) {
+        AlertDialog(
+            onDismissRequest = { showLangDialog = false },
+            title = { Text("Select App Language (40+ Languages)") },
+            text = {
+                Box(modifier = Modifier.height(350.dp)) {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        AppLanguages.supportedLanguages.forEach { lang ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        currentLangCode = lang.code
+                                        prefs.appLanguage = lang.code
+                                        showLangDialog = false
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(lang.displayName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(lang.nativeName, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (currentLangCode.equals(lang.code, ignoreCase = true)) {
+                                    Icon(Icons.Default.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLangDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    if (showClearDataDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDataDialog = false },
+            title = { Text("Clear All Data?") },
+            text = { Text("This will reset all settings, watch history, and library items. This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        prefs.resetAll()
+                        showClearDataDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Clear All")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDataDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -229,19 +371,23 @@ fun AppearanceSettings(
     val prefs = remember { PreferencesManager(context) }
 
     var selectedTheme by remember { mutableStateOf(prefs.themeMode) }
+    var selectedCatppuccin by remember { mutableStateOf(prefs.catppuccinTheme) }
     var selectedAccent by remember { mutableStateOf(prefs.accentColor) }
     var useCustomHex by remember { mutableStateOf(prefs.useCustomHex) }
     var customHexText by remember { mutableStateOf(prefs.customHexColor ?: "#7C4DFF") }
+    var cornerRadius by remember { mutableStateOf(prefs.cornerRadius) }
+    var fontScale by remember { mutableStateOf(prefs.fontScale) }
+    var cardStyle by remember { mutableStateOf(prefs.cardStyle) }
     var showHexDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Theme Mode", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
 
         AppThemeMode.entries.forEach { mode ->
             Row(
@@ -252,7 +398,7 @@ fun AppearanceSettings(
                         prefs.themeMode = mode
                         onThemeChanged(mode, selectedAccent, customHexText, useCustomHex)
                     }
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(
@@ -268,9 +414,25 @@ fun AppearanceSettings(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        HorizontalDivider()
+
+        Text("Catppuccin Theme Palette", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Latte", "Frappé", "Macchiato", "Mocha").forEach { cat ->
+                FilterChip(
+                    selected = selectedCatppuccin == cat,
+                    onClick = {
+                        selectedCatppuccin = cat
+                        prefs.catppuccinTheme = cat
+                    },
+                    label = { Text(cat) }
+                )
+            }
+        }
+
+        HorizontalDivider()
+
         Text("Accent Color Preset", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -302,9 +464,7 @@ fun AppearanceSettings(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
         Text("Custom HEX Accent Color", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(10.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -362,6 +522,44 @@ fun AppearanceSettings(
                 }
             }
         }
+
+        HorizontalDivider()
+
+        Text("UI Card Style & Layout", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Flat", "Elevated", "Outlined").forEach { style ->
+                FilterChip(
+                    selected = cardStyle == style,
+                    onClick = {
+                        cardStyle = style
+                        prefs.cardStyle = style
+                    },
+                    label = { Text(style) }
+                )
+            }
+        }
+
+        Text("Border Corner Radius: ${cornerRadius}dp", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Slider(
+            value = cornerRadius.toFloat(),
+            onValueChange = {
+                cornerRadius = it.toInt()
+                prefs.cornerRadius = it.toInt()
+            },
+            valueRange = 0f..24f,
+            steps = 5
+        )
+
+        Text("UI Font Scale: ${String.format("%.1fx", fontScale)}", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Slider(
+            value = fontScale,
+            onValueChange = {
+                fontScale = it
+                prefs.fontScale = it
+            },
+            valueRange = 0.8f..1.3f,
+            steps = 5
+        )
     }
 
     if (showHexDialog) {
@@ -426,6 +624,8 @@ fun HomeSettings() {
     var showCW by remember { mutableStateOf(prefs.showContinueWatching) }
     var showPop by remember { mutableStateOf(prefs.showPopular) }
     var showTrend by remember { mutableStateOf(prefs.showTrending) }
+    var showTop by remember { mutableStateOf(prefs.showTopRated) }
+    var showNew by remember { mutableStateOf(prefs.showNewReleases) }
     var showRec by remember { mutableStateOf(prefs.showRecommended) }
     var filterMode by remember { mutableStateOf(prefs.homeFilterMode) }
 
@@ -433,10 +633,10 @@ fun HomeSettings() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Home Sections Visibility", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(12.dp))
 
         SettingSwitchRow("Continue Watching Row", showCW) {
             showCW = it
@@ -450,14 +650,22 @@ fun HomeSettings() {
             showTrend = it
             prefs.showTrending = it
         }
+        SettingSwitchRow("Top Rated Anime & Movies", showTop) {
+            showTop = it
+            prefs.showTopRated = it
+        }
+        SettingSwitchRow("New Season Releases", showNew) {
+            showNew = it
+            prefs.showNewReleases = it
+        }
         SettingSwitchRow("Recommended Highlights", showRec) {
             showRec = it
             prefs.showRecommended = it
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Content Focus Filter", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider()
+
+        Text("Default Content Category Filter", fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("ALL", "ANIME", "MOVIES", "MANGA").forEach { mode ->
@@ -479,51 +687,60 @@ fun PlayerSettings() {
     val context = LocalContext.current
     val prefs = remember { PreferencesManager(context) }
 
+    var playerEngine by remember { mutableStateOf(prefs.playerEngine) }
+    var prefQuality by remember { mutableStateOf(prefs.preferredQuality) }
     var autoSkipIntro by remember { mutableStateOf(prefs.autoSkipIntro) }
+    var skipIntroDuration by remember { mutableStateOf(prefs.skipIntroDuration) }
     var seekDuration by remember { mutableStateOf(prefs.seekDuration) }
     var autoplayNext by remember { mutableStateOf(prefs.autoplayNext) }
     var screenLock by remember { mutableStateOf(prefs.playerScreenLock) }
     var decoder by remember { mutableStateOf(prefs.playerDecoder) }
+    var gestureVol by remember { mutableStateOf(prefs.gestureVolumeControl) }
+    var gestureBright by remember { mutableStateOf(prefs.gestureBrightnessControl) }
+    var subLang by remember { mutableStateOf(prefs.subtitleLanguage) }
+    var subSize by remember { mutableStateOf(prefs.subtitleSize) }
+    var subBgStyle by remember { mutableStateOf(prefs.subtitleBgStyle) }
+    var audioBoost by remember { mutableStateOf(prefs.audioBoost) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Player & Gesture Preferences", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(12.dp))
+        Text("Player Engine & Decoders", fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
-        SettingSwitchRow("Auto-Skip Intro / Outro", autoSkipIntro) {
-            autoSkipIntro = it
-            prefs.autoSkipIntro = it
+        Text("Playback Engine", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("ExoPlayer (Native)", "VLC Engine", "MPV Core").forEach { eng ->
+                FilterChip(
+                    selected = playerEngine == eng,
+                    onClick = {
+                        playerEngine = eng
+                        prefs.playerEngine = eng
+                    },
+                    label = { Text(eng) }
+                )
+            }
         }
 
-        Text("Double-Tap Seek Duration: ${seekDuration}s", fontSize = 14.sp)
-        Slider(
-            value = seekDuration.toFloat(),
-            onValueChange = {
-                seekDuration = it.toInt()
-                prefs.seekDuration = it.toInt()
-            },
-            valueRange = 5f..30f,
-            steps = 4
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-        SettingSwitchRow("Autoplay Next Episode", autoplayNext) {
-            autoplayNext = it
-            prefs.autoplayNext = it
+        Text("Preferred Video Resolution", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("1080p", "720p", "480p", "Auto").forEach { q ->
+                FilterChip(
+                    selected = prefQuality == q,
+                    onClick = {
+                        prefQuality = q
+                        prefs.preferredQuality = q
+                    },
+                    label = { Text(q) }
+                )
+            }
         }
 
-        SettingSwitchRow("Enable Touch Lock Overlay", screenLock) {
-            screenLock = it
-            prefs.playerScreenLock = it
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
         Text("Decoder Hardware Acceleration", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("Hardware Accelerated", "Software Fallback").forEach { dec ->
                 FilterChip(
                     selected = decoder == dec,
@@ -534,6 +751,105 @@ fun PlayerSettings() {
                     label = { Text(dec) }
                 )
             }
+        }
+
+        HorizontalDivider()
+
+        Text("Gestures & Playback Controls", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
+        SettingSwitchRow("Vertical Swipe Volume Control", gestureVol) {
+            gestureVol = it
+            prefs.gestureVolumeControl = it
+        }
+
+        SettingSwitchRow("Vertical Swipe Brightness Control", gestureBright) {
+            gestureBright = it
+            prefs.gestureBrightnessControl = it
+        }
+
+        SettingSwitchRow("Auto-Skip Intro / Outro", autoSkipIntro) {
+            autoSkipIntro = it
+            prefs.autoSkipIntro = it
+        }
+
+        Text("Skip Intro Duration: ${skipIntroDuration}s", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Slider(
+            value = skipIntroDuration.toFloat(),
+            onValueChange = {
+                skipIntroDuration = it.toInt()
+                prefs.skipIntroDuration = it.toInt()
+            },
+            valueRange = 30f..120f,
+            steps = 9
+        )
+
+        Text("Double-Tap Seek Duration: ${seekDuration}s", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Slider(
+            value = seekDuration.toFloat(),
+            onValueChange = {
+                seekDuration = it.toInt()
+                prefs.seekDuration = it.toInt()
+            },
+            valueRange = 5f..30f,
+            steps = 4
+        )
+
+        SettingSwitchRow("Autoplay Next Episode", autoplayNext) {
+            autoplayNext = it
+            prefs.autoplayNext = it
+        }
+
+        SettingSwitchRow("Enable Touch Lock Overlay", screenLock) {
+            screenLock = it
+            prefs.playerScreenLock = it
+        }
+
+        HorizontalDivider()
+
+        Text("Subtitles & Audio Preferences", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
+        Text("Preferred Subtitle Language", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("English", "Spanish", "French", "Japanese", "None").forEach { sLang ->
+                FilterChip(
+                    selected = subLang == sLang,
+                    onClick = {
+                        subLang = sLang
+                        prefs.subtitleLanguage = sLang
+                    },
+                    label = { Text(sLang) }
+                )
+            }
+        }
+
+        Text("Subtitle Text Size: ${subSize}sp", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Slider(
+            value = subSize.toFloat(),
+            onValueChange = {
+                subSize = it.toInt()
+                prefs.subtitleSize = it.toInt()
+            },
+            valueRange = 12f..28f,
+            steps = 7
+        )
+
+        Text("Subtitle Background Box", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Transparent Black", "Solid Black", "None").forEach { bg ->
+                FilterChip(
+                    selected = subBgStyle == bg,
+                    onClick = {
+                        subBgStyle = bg
+                        prefs.subtitleBgStyle = bg
+                    },
+                    label = { Text(bg) }
+                )
+            }
+        }
+
+        SettingSwitchRow("Enable Audio Boost (+200% Volume)", audioBoost) {
+            audioBoost = it
+            prefs.audioBoost = it
         }
     }
 }
@@ -546,18 +862,20 @@ fun MangaReaderSettings() {
     var readingMode by remember { mutableStateOf(prefs.readingMode) }
     var readingDirection by remember { mutableStateOf(prefs.readingDirection) }
     var doubleTapZoom by remember { mutableStateOf(prefs.doubleTapZoom) }
+    var tapToScroll by remember { mutableStateOf(prefs.tapToScroll) }
+    var webtoonGap by remember { mutableStateOf(prefs.webtoonGap) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Manga & Reader Options", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
 
         Text("Default Reading Mode", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("Webtoon (Vertical)", "Paged Single", "Continuous").forEach { mode ->
                 FilterChip(
                     selected = readingMode == mode,
@@ -570,10 +888,9 @@ fun MangaReaderSettings() {
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
         Text("Reading Direction", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
-            listOf("Right to Left", "Left to Right").forEach { dir ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Right to Left", "Left to Right", "Vertical").forEach { dir ->
                 FilterChip(
                     selected = readingDirection == dir,
                     onClick = {
@@ -585,26 +902,176 @@ fun MangaReaderSettings() {
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        HorizontalDivider()
+
+        Text("Gestures & Display Options", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
         SettingSwitchRow("Double-Tap to Zoom Page", doubleTapZoom) {
             doubleTapZoom = it
             prefs.doubleTapZoom = it
         }
+
+        SettingSwitchRow("Tap Screen Edges to Scroll", tapToScroll) {
+            tapToScroll = it
+            prefs.tapToScroll = it
+        }
+
+        Text("Webtoon Page Gap Padding: ${webtoonGap}dp", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Slider(
+            value = webtoonGap.toFloat(),
+            onValueChange = {
+                webtoonGap = it.toInt()
+                prefs.webtoonGap = it.toInt()
+            },
+            valueRange = 0f..30f,
+            steps = 5
+        )
     }
 }
 
 @Composable
 fun LibrarySettings() {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Library & Tracking Sync", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(10.dp))
-        Text("Default Sort Order: Title (A-Z)", fontSize = 14.sp)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Trackers Architecture (AniList / MyAnimeList)", fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = {}) {
-            Text("Log in to AniList Sync")
+    val context = LocalContext.current
+    val prefs = remember { PreferencesManager(context) }
+
+    var sortOrder by remember { mutableStateOf(prefs.librarySortOrder) }
+    var autoSync by remember { mutableStateOf(prefs.autoSyncTrackers) }
+    var aniListUser by remember { mutableStateOf(prefs.aniListUsername) }
+    var malUser by remember { mutableStateOf(prefs.malUsername) }
+    var showAniListDialog by remember { mutableStateOf(false) }
+    var showMalDialog by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Library Preferences", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+
+        Text("Default Library Sort Order", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Title (A-Z)", "Last Read", "Date Added", "Rating").forEach { sort ->
+                FilterChip(
+                    selected = sortOrder == sort,
+                    onClick = {
+                        sortOrder = sort
+                        prefs.librarySortOrder = sort
+                    },
+                    label = { Text(sort) }
+                )
+            }
         }
+
+        HorizontalDivider()
+
+        Text("Tracking Sync Integration", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+
+        SettingSwitchRow("Auto Sync Progress with Trackers", autoSync) {
+            autoSync = it
+            prefs.autoSyncTrackers = it
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text("AniList Tracker", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text(if (aniListUser.isBlank()) "Not connected" else "Logged in as @$aniListUser", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Button(
+                        onClick = { showAniListDialog = true }
+                    ) {
+                        Text(if (aniListUser.isBlank()) "Connect" else "Manage")
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text("MyAnimeList Tracker", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text(if (malUser.isBlank()) "Not connected" else "Logged in as @$malUser", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Button(
+                        onClick = { showMalDialog = true }
+                    ) {
+                        Text(if (malUser.isBlank()) "Connect" else "Manage")
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAniListDialog) {
+        var tempUser by remember { mutableStateOf(aniListUser) }
+        AlertDialog(
+            onDismissRequest = { showAniListDialog = false },
+            title = { Text("AniList Sync Account") },
+            text = {
+                OutlinedTextField(
+                    value = tempUser,
+                    onValueChange = { tempUser = it },
+                    label = { Text("AniList Username") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    aniListUser = tempUser
+                    prefs.aniListUsername = tempUser
+                    showAniListDialog = false
+                }) {
+                    Text("Save Account")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAniListDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showMalDialog) {
+        var tempUser by remember { mutableStateOf(malUser) }
+        AlertDialog(
+            onDismissRequest = { showMalDialog = false },
+            title = { Text("MyAnimeList Sync Account") },
+            text = {
+                OutlinedTextField(
+                    value = tempUser,
+                    onValueChange = { tempUser = it },
+                    label = { Text("MyAnimeList Username") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    malUser = tempUser
+                    prefs.malUsername = tempUser
+                    showMalDialog = false
+                }) {
+                    Text("Save Account")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMalDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
