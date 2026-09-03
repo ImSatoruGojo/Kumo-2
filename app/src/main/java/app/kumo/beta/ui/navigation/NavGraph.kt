@@ -25,8 +25,10 @@ import app.kumo.beta.ui.screens.home.HomeScreen
 import app.kumo.beta.ui.screens.library.LibraryScreen
 import app.kumo.beta.ui.screens.search.SearchScreen
 import app.kumo.beta.ui.screens.settings.SettingsScreen
+import app.kumo.beta.ui.screens.splash.SplashScreen
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+    data object Splash : Screen("splash", "Splash", Icons.Default.Home)
     data object Home : Screen("home", "Home", Icons.Default.Home)
     data object Search : Screen("search", "Search", Icons.Default.Search)
     data object Library : Screen("library", "Library", Icons.Default.VideoLibrary)
@@ -100,9 +102,18 @@ fun KumoNavGraph() {
         ) { padding ->
             NavHost(
                 navController = navController,
-                startDestination = Screen.Home.route,
+                startDestination = Screen.Splash.route,
                 modifier = Modifier.padding(padding)
             ) {
+                composable(Screen.Splash.route) {
+                    SplashScreen(
+                        onSplashFinished = {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Splash.route) { inclusive = true }
+                            }
+                        }
+                    )
+                }
                 composable(Screen.Home.route) {
                     HomeScreen(
                         onNavigateToDetails = { titleId ->

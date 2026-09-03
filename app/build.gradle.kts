@@ -71,6 +71,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
 
+    // Preferences DataStore
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     // Image loading (lightweight)
     implementation("io.coil-kt:coil-compose:2.7.0")
 

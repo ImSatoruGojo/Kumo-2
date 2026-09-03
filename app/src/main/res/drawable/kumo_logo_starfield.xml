@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0B0B10"
+        android:pathData="M0,0h108v108h-108z"/>
+    <!-- Stars -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,20l1,3l3,1l-3,1l-1,3l-1,-3l-3,-1l3,-1z M85,25l1.5,4.5l4.5,1.5l-4.5,1.5l-1.5,4.5l-1.5,-4.5l-4.5,-1.5l4.5,-1.5z M25,80l1,3l3,1l-3,1l-1,3l-1,-3l-3,-1l3,-1z M80,75l1,3l3,1l-3,1l-1,3l-1,-3l-3,-1l3,-1z"/>
+    <!-- Crescent Cloud Shape -->
+    <path
+        android:fillColor="#6D4AFF"
+        android:pathData="M34,54 C34,42 44,32 56,32 C60,32 64,33 67,35 C61,37 57,43 57,50 C57,58 63,64 71,64 C67,68 62,70 56,70 C44,70 34,60 34,54 Z"/>
+</vector>
