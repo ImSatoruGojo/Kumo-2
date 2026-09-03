@@ -4,15 +4,6 @@ enum class MediaType {
     ANIME, MOVIE, SHOW, CARTOON, MANGA
 }
 
-val MediaType.typeLabel: String
-    get() = when (this) {
-        MediaType.ANIME -> "Anime"
-        MediaType.MOVIE -> "Movie"
-        MediaType.SHOW -> "TV Show"
-        MediaType.CARTOON -> "Cartoon"
-        MediaType.MANGA -> "Manga"
-    }
-
 data class Title(
     val id: String,
     val title: String,

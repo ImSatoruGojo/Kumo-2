@@ -1,8 +1,10 @@
-name: Build Debug APK
+name: Build Kumo V2 Debug APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
   workflow_dispatch:
 
 jobs:
@@ -27,9 +29,9 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: kumo-debug-apk
+          name: kumo-v2-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn

@@ -9,8 +9,8 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,12 +19,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.kumo.beta.data.DemoData
-import app.kumo.beta.data.local.PreferencesManager
 import app.kumo.beta.ui.screens.details.DetailsScreen
 import app.kumo.beta.ui.screens.home.HomeScreen
 import app.kumo.beta.ui.screens.library.LibraryScreen
 import app.kumo.beta.ui.screens.search.SearchScreen
 import app.kumo.beta.ui.screens.settings.SettingsScreen
+import app.kumo.beta.ui.theme.KumoBlack
+import app.kumo.beta.ui.theme.KumoPurple
+import app.kumo.beta.ui.theme.KumoSurface
+import app.kumo.beta.ui.theme.KumoTextSecondary
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     data object Home : Screen("home", "Home", Icons.Default.Home)
@@ -44,108 +47,83 @@ fun KumoNavGraph() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val context = LocalContext.current
-    val prefs = remember { PreferencesManager(context) }
-    var currentThemeMode by remember { mutableStateOf(prefs.themeMode) }
-    var currentAccentColor by remember { mutableStateOf(prefs.accentColor) }
-
     val showBottomBar = bottomScreens.any { it.route == currentRoute }
 
-    app.kumo.beta.ui.theme.KumoTheme(
-        themeMode = currentThemeMode,
-        accentOption = currentAccentColor
-    ) {
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            bottomBar = {
-                if (showBottomBar) {
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 0.dp
-                    ) {
-                        bottomScreens.forEach { screen ->
-                            val selected = currentRoute == screen.route
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = {
-                                    navController.navigate(screen.route) {
-                                        popUpTo(Screen.Home.route) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = screen.icon,
-                                        contentDescription = screen.label
-                                    )
-                                },
-                                label = { Text(screen.label) },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+    Scaffold(
+        containerColor = KumoBlack,
+        bottomBar = {
+            if (showBottomBar) {
+                NavigationBar(
+                    containerColor = KumoSurface,
+                    tonalElevation = 0.dp
+                ) {
+                    bottomScreens.forEach { screen ->
+                        val selected = currentRoute == screen.route
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(Screen.Home.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = screen.icon,
+                                    contentDescription = screen.label
                                 )
+                            },
+                            label = { Text(screen.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = KumoPurple,
+                                selectedTextColor = KumoPurple,
+                                unselectedIconColor = KumoTextSecondary,
+                                unselectedTextColor = KumoTextSecondary,
+                                indicatorColor = KumoPurple.copy(alpha = 0.15f)
                             )
-                        }
+                        )
                     }
                 }
             }
-        ) { padding ->
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Home.route,
-                modifier = Modifier.padding(padding)
-            ) {
-                composable(Screen.Home.route) {
-                    HomeScreen(
-                        onNavigateToDetails = { titleId ->
-                            navController.navigate(Screen.Details.create(titleId))
-                        },
-                        onNavigateToSearch = {
-                            navController.navigate(Screen.Search.route)
-                        },
-                        onNavigateToSearchWithFilter = {
-                            navController.navigate(Screen.Search.route)
-                        }
-                    )
-                }
-                composable(Screen.Search.route) {
-                    SearchScreen(
-                        onNavigateToDetails = { titleId ->
-                            navController.navigate(Screen.Details.create(titleId))
-                        }
-                    )
-                }
-                composable(Screen.Library.route) {
-                    LibraryScreen(
-                        onNavigateToDetails = { titleId ->
-                            navController.navigate(Screen.Details.create(titleId))
-                        }
-                    )
-                }
-                composable(Screen.Settings.route) {
-                    SettingsScreen(
-                        onThemeChanged = { newTheme, newAccent ->
-                            currentThemeMode = newTheme
-                            currentAccentColor = newAccent
-                        }
-                    )
-                }
-                composable(
-                    route = Screen.Details.route,
-                    arguments = listOf(navArgument("titleId") { type = NavType.StringType })
-                ) { backStackEntry ->
-                    val titleId = backStackEntry.arguments?.getString("titleId") ?: return@composable
-                    val title = DemoData.getById(titleId)
-                    if (title != null) {
-                        DetailsScreen(
-                            title = title,
-                            onBack = { navController.popBackStack() }
-                        )
+        }
+    ) { padding ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Home.route,
+            modifier = Modifier.padding(padding)
+        ) {
+            composable(Screen.Home.route) {
+                HomeScreen(
+                    onTitleClick = { title ->
+                        navController.navigate(Screen.Details.create(title.id))
                     }
+                )
+            }
+            composable(Screen.Search.route) {
+                SearchScreen(
+                    onTitleClick = { title ->
+                        navController.navigate(Screen.Details.create(title.id))
+                    }
+                )
+            }
+            composable(Screen.Library.route) {
+                LibraryScreen()
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen()
+            }
+            composable(
+                route = Screen.Details.route,
+                arguments = listOf(navArgument("titleId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val titleId = backStackEntry.arguments?.getString("titleId") ?: return@composable
+                val title = DemoData.getById(titleId)
+                if (title != null) {
+                    DetailsScreen(
+                        title = title,
+                        onBack = { navController.popBackStack() }
+                    )
                 }
             }
         }
