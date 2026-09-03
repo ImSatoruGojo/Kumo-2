@@ -17,7 +17,7 @@ import app.kumo.beta.ui.theme.KumoTextSecondary
 @Composable
 fun SettingsScreen() {
     Column(
-import androidx.compose.ui.Modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(KumoBlack)
             .padding(16.dp)
@@ -28,7 +28,8 @@ import androidx.compose.ui.Modifier
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
-import androidx.compose.ui.Modifier
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         SettingsGroup("General") {
             SettingsItem("Theme", "Dark (default)")
@@ -36,7 +37,8 @@ import androidx.compose.ui.Modifier
             SettingsItem("Cache limit", "512 MB")
         }
 
-import androidx.compose.ui.Modifier
+        Spacer(modifier = Modifier.height(16.dp))
+
         SettingsGroup("Player") {
             SettingsItem("Default quality", "Auto")
             SettingsItem("Playback speed", "1x")
@@ -44,7 +46,8 @@ import androidx.compose.ui.Modifier
             SettingsItem("Double-tap seek", "10 seconds")
         }
 
-import androidx.compose.ui.Modifier
+        Spacer(modifier = Modifier.height(16.dp))
+
         SettingsGroup("About") {
             SettingsItem("Version", "0.1.0-beta")
             SettingsItem("Build", "Milestone 1")
@@ -59,10 +62,10 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
         color = KumoTextSecondary,
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
-import androidx.compose.ui.Modifier
+        modifier = Modifier.padding(bottom = 8.dp)
     )
     Column(
-import androidx.compose.ui.Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .background(KumoCard, RoundedCornerShape(12.dp))
             .padding(vertical = 4.dp),
@@ -73,7 +76,7 @@ import androidx.compose.ui.Modifier
 @Composable
 private fun SettingsItem(label: String, value: String) {
     Row(
-import androidx.compose.ui.Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween

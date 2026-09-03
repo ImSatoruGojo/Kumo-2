@@ -8,7 +8,7 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher_foreground"
         android:label="Kumo"
-        android:roundIcon="@drawable/ic_launcher_foreground_round"
+        android:roundIcon="@drawable/ic_launcher_foreground"
         android:supportsRtl="true"
         android:theme="@style/Theme.Kumo"
         android:usesCleartextTraffic="true">
