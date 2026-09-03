@@ -47,7 +47,7 @@ fun SplashScreen(
             modifier = Modifier.alpha(alphaAnim.value)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.kumo_logo_starfield),
+                painter = painterResource(id = R.drawable.kumo_logo_image),
                 contentDescription = "Kumo Logo",
                 modifier = Modifier.size(120.dp)
             )
