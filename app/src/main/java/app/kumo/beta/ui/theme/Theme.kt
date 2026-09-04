@@ -9,22 +9,18 @@ import androidx.compose.ui.graphics.Color
 import app.kumo.beta.data.local.AccentColorOption
 import app.kumo.beta.data.local.AppThemeMode
 
-// Base Background & Card Colors
-val KumoBlack = Color(0xFF0B0B10)
+// Base Background & Card Colors - Strictly Pure Black and Grayscale
+val KumoBlack = Color(0xFF000000)
 val KumoAmoled = Color(0xFF000000)
-val KumoSurface = Color(0xFF14141C)
-val KumoCard = Color(0xFF181822)
-
-// Legacy accent color compatibility
-val KumoPurple = Color(0xFF6D4AFF)
+val KumoSurface = Color(0xFF1A1A1A)
+val KumoCard = Color(0xFF1A1A1A)
 
 // Text Colors
 val KumoText = Color(0xFFFFFFFF)
 val KumoTextSecondary = Color(0xFFAAAAAA)
-val KumoBeta = Color(0xFFFFB020)
 
 fun parseColorHex(hex: String): Long {
-    val cleanHex = hex.trim().uppercase()
+    val cleanHex = hex.trim().removePrefix("#").uppercase()
     return when (cleanHex.length) {
         6 -> ("FF" + cleanHex).toLong(16)
         8 -> cleanHex.toLong(16)
@@ -34,14 +30,14 @@ fun parseColorHex(hex: String): Long {
             val b = cleanHex[2]
             ("FF$r$r$g$g$b$b").toLong(16)
         }
-        else -> 0xFF6D4AFF
+        else -> 0xFFFFFFFF
     }
 }
 
 @Composable
 fun KumoTheme(
     themeMode: AppThemeMode = AppThemeMode.DARK,
-    accentOption: AccentColorOption = AccentColorOption.PURPLE,
+    accentOption: AccentColorOption = AccentColorOption.WHITE,
     customHex: String? = null,
     useCustomHex: Boolean = false,
     content: @Composable () -> Unit

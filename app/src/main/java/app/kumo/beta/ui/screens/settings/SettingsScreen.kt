@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.R
 import app.kumo.beta.data.local.*
+import app.kumo.beta.ui.components.CircularColorPickerDialog
+import app.kumo.beta.ui.components.KumoColorPresets
 
 enum class SettingsSubmenu(val title: String, val icon: ImageVector) {
     GENERAL("General", Icons.Default.Tune),
@@ -563,54 +565,16 @@ fun AppearanceSettings(
     }
 
     if (showHexDialog) {
-        var tempHex by remember { mutableStateOf(customHexText) }
-        var isError by remember { mutableStateOf(false) }
-
-        AlertDialog(
-            onDismissRequest = { showHexDialog = false },
-            title = { Text("Enter Custom HEX Code") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = tempHex,
-                        onValueChange = {
-                            tempHex = it
-                            isError = false
-                        },
-                        label = { Text("Color Hex (e.g. #7C4DFF)") },
-                        singleLine = true,
-                        isError = isError,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii)
-                    )
-                    if (isError) {
-                        Text("Invalid Hex Code format (e.g. #FF5722)", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val clean = tempHex.removePrefix("#").trim()
-                        if (clean.length == 6 || clean.length == 8) {
-                            val formatted = if (tempHex.startsWith("#")) tempHex else "#$tempHex"
-                            customHexText = formatted
-                            useCustomHex = true
-                            prefs.customHexColor = formatted
-                            prefs.useCustomHex = true
-                            onThemeChanged(selectedTheme, selectedAccent, formatted, true)
-                            showHexDialog = false
-                        } else {
-                            isError = true
-                        }
-                    }
-                ) {
-                    Text("Apply")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showHexDialog = false }) {
-                    Text("Cancel")
-                }
+        CircularColorPickerDialog(
+            initialHex = customHexText,
+            onDismiss = { showHexDialog = false },
+            onColorSelected = { newHex ->
+                customHexText = newHex
+                useCustomHex = true
+                prefs.customHexColor = newHex
+                prefs.useCustomHex = true
+                onThemeChanged(selectedTheme, selectedAccent, newHex, true)
+                showHexDialog = false
             }
         )
     }

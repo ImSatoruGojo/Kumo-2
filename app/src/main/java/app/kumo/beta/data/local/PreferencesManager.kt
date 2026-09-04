@@ -8,13 +8,16 @@ enum class AppThemeMode {
 }
 
 enum class AccentColorOption(val title: String, val hexColor: Long) {
-    PURPLE("Kumo Purple", 0xFF6D4AFF),
-    BLUE("Ocean Blue", 0xFF2196F3),
-    CYAN("Neon Cyan", 0xFF00E5FF),
-    RED("Crimson Red", 0xFFFF2D55),
-    GREEN("Emerald Green", 0xFF00E676),
-    ORANGE("Sunset Orange", 0xFFFF9100),
-    PINK("Sakura Pink", 0xFFFF4081)
+    WHITE("White Accent", 0xFFFFFFFF),
+    ORANGE("Kumo Orange", 0xFFFF6B35),
+    RED("Red", 0xFFFF0000),
+    GREEN("Green", 0xFF00FF00),
+    BLUE("Blue", 0xFF0000FF),
+    YELLOW("Yellow", 0xFFFFFF00),
+    MAGENTA("Magenta", 0xFFFF00FF),
+    CYAN("Cyan", 0xFF00FFFF),
+    PURPLE("Purple", 0xFF800080),
+    PINK("Pink", 0xFFFFC0CB)
 }
 
 class PreferencesManager(context: Context) {
@@ -35,15 +38,15 @@ class PreferencesManager(context: Context) {
 
     var accentColor: AccentColorOption
         get() {
-            val name = prefs.getString("accent_color", AccentColorOption.PURPLE.name) ?: AccentColorOption.PURPLE.name
-            return try { AccentColorOption.valueOf(name) } catch (e: Exception) { AccentColorOption.PURPLE }
+            val name = prefs.getString("accent_color", AccentColorOption.WHITE.name) ?: AccentColorOption.WHITE.name
+            return try { AccentColorOption.valueOf(name) } catch (e: Exception) { AccentColorOption.WHITE }
         }
         set(value) {
             prefs.edit().putString("accent_color", value.name).apply()
         }
 
     var customHexColor: String
-        get() = prefs.getString("custom_hex_color", "#7C4DFF") ?: "#7C4DFF"
+        get() = prefs.getString("custom_hex_color", "#FFFFFF") ?: "#FFFFFF"
         set(value) {
             prefs.edit().putString("custom_hex_color", value).apply()
         }
@@ -84,6 +87,12 @@ class PreferencesManager(context: Context) {
             prefs.edit().putBoolean("confirm_exit", value).apply()
         }
 
+    var amoledMode: Boolean
+        get() = prefs.getBoolean("pref_amoled_mode", false)
+        set(value) {
+            prefs.edit().putBoolean("pref_amoled_mode", value).apply()
+        }
+
     var dataSavingEnabled: Boolean
         get() = prefs.getBoolean("data_saving", false)
         set(value) {
@@ -112,6 +121,54 @@ class PreferencesManager(context: Context) {
         get() = prefs.getString("card_style", "Elevated") ?: "Elevated"
         set(value) {
             prefs.edit().putString("card_style", value).apply()
+        }
+
+    var themePreset: String
+        get() = prefs.getString("pref_theme_preset", "Kumo Default") ?: "Kumo Default"
+        set(value) {
+            prefs.edit().putString("pref_theme_preset", value).apply()
+        }
+
+    var roundedCorners: Boolean
+        get() = prefs.getBoolean("pref_rounded_corners", true)
+        set(value) {
+            prefs.edit().putBoolean("pref_rounded_corners", value).apply()
+        }
+
+    var brightnessFilter: Int
+        get() = prefs.getInt("pref_brightness_filter", 100)
+        set(value) {
+            prefs.edit().putInt("pref_brightness_filter", value).apply()
+        }
+
+    var contrastFilter: Int
+        get() = prefs.getInt("pref_contrast_filter", 100)
+        set(value) {
+            prefs.edit().putInt("pref_contrast_filter", value).apply()
+        }
+
+    var saturationFilter: Int
+        get() = prefs.getInt("pref_saturation_filter", 100)
+        set(value) {
+            prefs.edit().putInt("pref_saturation_filter", value).apply()
+        }
+
+    var colorTemp: Int
+        get() = prefs.getInt("pref_color_temp", 50)
+        set(value) {
+            prefs.edit().putInt("pref_color_temp", value).apply()
+        }
+
+    var invertColors: Boolean
+        get() = prefs.getBoolean("pref_invert_colors", false)
+        set(value) {
+            prefs.edit().putBoolean("pref_invert_colors", value).apply()
+        }
+
+    var sepiaMode: Boolean
+        get() = prefs.getBoolean("pref_sepia_mode", false)
+        set(value) {
+            prefs.edit().putBoolean("pref_sepia_mode", value).apply()
         }
 
     // Home Screen Customization
@@ -155,6 +212,30 @@ class PreferencesManager(context: Context) {
         get() = prefs.getBoolean("show_recommended", true)
         set(value) {
             prefs.edit().putBoolean("show_recommended", value).apply()
+        }
+
+    var showRating: Boolean
+        get() = prefs.getBoolean("pref_show_rating", true)
+        set(value) {
+            prefs.edit().putBoolean("pref_show_rating", value).apply()
+        }
+
+    var showStatus: Boolean
+        get() = prefs.getBoolean("pref_show_status", true)
+        set(value) {
+            prefs.edit().putBoolean("pref_show_status", value).apply()
+        }
+
+    var itemsPerRow: Int
+        get() = prefs.getInt("pref_items_per_row", 2)
+        set(value) {
+            prefs.edit().putInt("pref_items_per_row", value).apply()
+        }
+
+    var historySize: String
+        get() = prefs.getString("pref_history_size", "50") ?: "50"
+        set(value) {
+            prefs.edit().putString("pref_history_size", value).apply()
         }
 
     var homeFilterMode: String
@@ -273,6 +354,48 @@ class PreferencesManager(context: Context) {
             prefs.edit().putBoolean("audio_boost", value).apply()
         }
 
+    var skipOutroDuration: Int
+        get() = prefs.getInt("pref_skip_outro", 30)
+        set(value) {
+            prefs.edit().putInt("pref_skip_outro", value).apply()
+        }
+
+    var autoplayThreshold: Int
+        get() = prefs.getInt("pref_autoplay_threshold", 90)
+        set(value) {
+            prefs.edit().putInt("pref_autoplay_threshold", value).apply()
+        }
+
+    var pipEnabled: Boolean
+        get() = prefs.getBoolean("pref_pip_enabled", true)
+        set(value) {
+            prefs.edit().putBoolean("pref_pip_enabled", value).apply()
+        }
+
+    var uiAutohideDuration: Int
+        get() = prefs.getInt("pref_ui_autohide", 3000)
+        set(value) {
+            prefs.edit().putInt("pref_ui_autohide", value).apply()
+        }
+
+    var screenRotation: String
+        get() = prefs.getString("pref_screen_rotation", "Free") ?: "Free"
+        set(value) {
+            prefs.edit().putString("pref_screen_rotation", value).apply()
+        }
+
+    var keepScreenOn: Boolean
+        get() = prefs.getBoolean("pref_keep_screen_on", false)
+        set(value) {
+            prefs.edit().putBoolean("pref_keep_screen_on", value).apply()
+        }
+
+    var notchHandling: String
+        get() = prefs.getString("pref_notch_handling", "Ignore") ?: "Ignore"
+        set(value) {
+            prefs.edit().putString("pref_notch_handling", value).apply()
+        }
+
     // Library & Tracking Preferences
     var librarySortOrder: String
         get() = prefs.getString("library_sort_order", "Title (A-Z)") ?: "Title (A-Z)"
@@ -327,6 +450,36 @@ class PreferencesManager(context: Context) {
         get() = prefs.getInt("webtoon_gap", 0)
         set(value) {
             prefs.edit().putInt("webtoon_gap", value).apply()
+        }
+
+    var perMangaMode: Boolean
+        get() = prefs.getBoolean("pref_per_manga_mode", true)
+        set(value) {
+            prefs.edit().putBoolean("pref_per_manga_mode", value).apply()
+        }
+
+    var readerBgColor: String
+        get() = prefs.getString("pref_reader_bg", "Black") ?: "Black"
+        set(value) {
+            prefs.edit().putString("pref_reader_bg", value).apply()
+        }
+
+    var readerTextColor: String
+        get() = prefs.getString("pref_reader_text_color", "#FFFFFF") ?: "#FFFFFF"
+        set(value) {
+            prefs.edit().putString("pref_reader_text_color", value).apply()
+        }
+
+    var cropBorders: Boolean
+        get() = prefs.getBoolean("pref_crop_borders", false)
+        set(value) {
+            prefs.edit().putBoolean("pref_crop_borders", value).apply()
+        }
+
+    var scaleToFit: Boolean
+        get() = prefs.getBoolean("pref_scale_to_fit", true)
+        set(value) {
+            prefs.edit().putBoolean("pref_scale_to_fit", value).apply()
         }
 
     // Network & Data

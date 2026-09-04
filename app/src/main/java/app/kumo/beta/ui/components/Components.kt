@@ -43,7 +43,7 @@ fun TitleCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(height)
-                    .background(Color(0xFF222230))
+                    .background(Color(0xFF1A1A1A))
             ) {
                 if (!title.posterUrl.isNullOrEmpty()) {
                     AsyncImage(
@@ -59,8 +59,8 @@ fun TitleCard(
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                                        Color(0xFF14141E)
+                                        Color(0xFF333333),
+                                        Color(0xFF000000)
                                     )
                                 )
                             ),
@@ -152,7 +152,7 @@ fun ContinueWatchingCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(125.dp)
-                    .background(Color(0xFF1F1F2C))
+                    .background(Color(0xFF1A1A1A))
             ) {
                 Box(
                     modifier = Modifier
