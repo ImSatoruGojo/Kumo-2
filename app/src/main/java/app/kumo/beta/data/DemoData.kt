@@ -27,13 +27,23 @@ object DemoData {
         Title(
             id = "kumo:title:skybound-hero",
             title = "Skybound Hero",
+            englishTitle = "Skybound Hero",
+            japaneseTitle = "天空の勇者",
+            romanizedTitle = "Tenkuu no Yuusha",
             altTitles = listOf("Tenkuu no Yuusha", "Skybound Legend"),
             type = MediaType.ANIME,
             description = "A young warrior discovers an ancient power that can reshape the skies. Action-packed journey through floating kingdoms.",
             genres = listOf("Action", "Fantasy", "Adventure"),
             year = 2024,
+            releaseDate = "Jan 12, 2024",
             rating = 4.8f,
+            ratingCount = 14250,
+            contentAgeRating = "TV-14",
+            runtimeMinutes = 24,
             status = "Ongoing",
+            studio = "Kumo Animation",
+            director = "Satoru Gojo",
+            cast = listOf("Hero A", "Heroine B", "Rival C"),
             seasons = listOf(
                 Season(seasonNumber = 1, name = "Season 1: Skybound Origin", status = "Completed", episodes = eps(12, "S1 Ep")),
                 Season(seasonNumber = 2, name = "Season 2: Floating Realm War", status = "Currently Watching", episodes = eps(12, "S2 Ep"))
