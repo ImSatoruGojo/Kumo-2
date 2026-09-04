@@ -1,17 +1,64 @@
-# APK For Kumo Code Modification
+REFERENCE CODE AND TEST BUILD DEVELOPMENT
 
-Download these 4 APKs (Aniyomi, Animiru, CloudStream, Mihon) and study them.
+Study the source repositories provided for:
 
-**Download here:** https://drive.google.com/drive/folders/1-DDeNt7VU7wrzPM1qrEZshHTHYgyoOaC
+- Aniyomi
+- Animiru
+- CloudStream
+- Mihon
 
-Study each app's:
-- Settings structure
-- UI design
-- Player controls
-- Manga reader
-- Colors and icons
+Aniyomi:
+https://github.com/aniyomiorg/aniyomi
 
-Then build Kumo based on what you learn.
-you can copy their code make ui changes based on it copy the entire repo engine (YES) you can copy it
-and you can make changes based on how their ui looks the engine and the code to make kumo stable and working 
-make sure that Kumo has the repo engine from those apk you can copy the code it's no problem right now 
+Animiru:
+https://github.com/quickdesh/Animiru
+
+CloudStream:
+https://github.com/recloudstream/cloudstream
+
+Mihon:
+https://github.com/mihonapp/mihon
+
+For the current Kumo apk inspect their existing implementations and use relevant code patterns and compatible components to rapidly build working Kumo features you can inspect and reuse their code in process 
+
+Prioritize getting functional implementations into the apk rather than creating empty placeholder systems.
+
+Relevant areas to study and adapt include:
+
+- Repository installation and management
+- Extension and provider systems
+- Application startup and initialization
+- Settings architecture
+- Video player functionality
+- Manga reader functionality
+- Search systems
+- Library systems
+- Watch and reading progress
+- Downloads
+- Storage handling
+- Network settings
+- Provider preferences
+
+Do not blindly combine entire applications together.
+
+Instead, examine each system and integrate the most suitable implementation into Kumo and copy and modify the codes so the final application remains one unified project.
+
+For the current apk prioritize making features functional first. After the systems are working inside Kumo, progressively modify, improve, optimize, and customize them specifically for Kumo.
+
+Before adding a system, inspect Kumo's existing code to avoid creating duplicate implementations.
+
+The goal of the current stage is:
+
+Existing Kumo
+↓
+Add functional systems
+↓
+Integrate them together
+↓
+Test the application
+↓
+Fix errors
+↓
+Improve and customize everything for Kumo
+
+And for now work on making the ui better check all 4 apps source codes and make improvements add and combine the existing settings features of all 4 apk inside Kumo make sure they're working and take the entire cloudstream settings ui and put it in Kumo make sure it's working and not a dead placeholder the settings should have every single settings toggle those 4 apps has you can combine the settings  of all 4 apps and make overall ui improvement by taking their code modifying it and making it better and make ui in Kumo much better and much more stable you're free to copy their code modify it and make improvements in the app after doing all of that make sure that Kumo is working stable before packing apk and one more thing you're gonna copy the entire repo add section from animiru and make improvements in it and add into Kumo make sure everything is as said in instructions make sure the settings ui is copied from cloudstream 
