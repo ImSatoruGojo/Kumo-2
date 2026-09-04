@@ -16,6 +16,7 @@ val MediaType.typeLabel: String
 data class Title(
     val id: String,
     val title: String,
+    val altTitles: List<String> = emptyList(),
     val type: MediaType,
     val description: String,
     val genres: List<String> = emptyList(),
@@ -23,15 +24,28 @@ data class Title(
     val posterUrl: String? = null,
     val backdropUrl: String? = null,
     val rating: Float? = null,
+    val status: String = "Ongoing",
+    val seasons: List<Season> = emptyList(),
     val episodes: List<Episode> = emptyList(),
-    val chapters: List<Chapter> = emptyList()
+    val chapters: List<Chapter> = emptyList(),
+    val relatedTitles: List<String> = emptyList()
+)
+
+data class Season(
+    val seasonNumber: Int,
+    val name: String = "Season $seasonNumber",
+    val status: String = "Not Started", // "Completed", "Currently Watching", "Not Started"
+    val episodes: List<Episode> = emptyList()
 )
 
 data class Episode(
     val id: String,
     val number: Int,
     val title: String? = null,
-    val durationMs: Long? = null
+    val description: String? = null,
+    val thumbnailUrl: String? = null,
+    val durationMs: Long? = null,
+    val isWatched: Boolean = false
 )
 
 data class Chapter(

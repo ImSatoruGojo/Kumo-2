@@ -8,10 +8,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -280,26 +283,117 @@ fun DetailsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // EPISODES / CHAPTERS LIST
-            if (title.episodes.isNotEmpty()) {
+            // CLOUDSTREAM-STYLE SEASON SELECTOR & EPISODE SYSTEM
+            var selectedSeasonIndex by remember { mutableIntStateOf(0) }
+            var showSeasonMenu by remember { mutableStateOf(false) }
+            var episodeQuery by remember { mutableStateOf("") }
+            var sortAscending by remember { mutableStateOf(true) }
+
+            val currentSeasons = title.seasons.ifEmpty {
+                listOf(app.kumo.beta.model.Season(seasonNumber = 1, name = "Season 1", status = "Currently Watching", episodes = title.episodes))
+            }
+            val activeSeason = currentSeasons.getOrNull(selectedSeasonIndex) ?: currentSeasons.first()
+
+            val displayedEpisodes = remember(activeSeason, episodeQuery, sortAscending) {
+                var list = activeSeason.episodes
+                if (episodeQuery.isNotBlank()) {
+                    list = list.filter {
+                        (it.title ?: "").contains(episodeQuery, ignoreCase = true) ||
+                                "Episode ${it.number}".contains(episodeQuery, ignoreCase = true)
+                    }
+                }
+                if (!sortAscending) {
+                    list = list.reversed()
+                }
+                list
+            }
+
+            if (currentSeasons.isNotEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { showSeasonMenu = true },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = activeSeason.name,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "Status: ${activeSeason.status} • ${activeSeason.episodes.size} Episodes",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Season", tint = Color.White)
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = showSeasonMenu,
+                        onDismissRequest = { showSeasonMenu = false }
+                    ) {
+                        currentSeasons.forEachIndexed { index, season ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(season.name, fontWeight = FontWeight.Bold)
+                                        Text("${season.status} • ${season.episodes.size} Episodes", fontSize = 11.sp, color = Color.Gray)
+                                    }
+                                },
+                                onClick = {
+                                    selectedSeasonIndex = index
+                                    showSeasonMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // EPISODE SEARCH & SORT BAR
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Episodes (${title.episodes.size})",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                    OutlinedTextField(
+                        value = episodeQuery,
+                        onValueChange = { episodeQuery = it },
+                        placeholder = { Text("Search episode...", fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
                     )
-                    Text("Season 1", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+
+                    IconButton(
+                        onClick = { sortAscending = !sortAscending },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Icon(
+                            imageVector = if (sortAscending) Icons.AutoMirrored.Filled.Sort else Icons.Default.FilterList,
+                            contentDescription = "Sort Order",
+                            tint = Color.White
+                        )
+                    }
                 }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 var activeEpisodeToPlay by remember { mutableStateOf<app.kumo.beta.model.Episode?>(null) }
 
-                title.episodes.forEach { ep ->
+                displayedEpisodes.forEach { ep ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
