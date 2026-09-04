@@ -47,3 +47,45 @@ data class Progress(
     val durationMs: Long,
     val updatedAt: Long = System.currentTimeMillis()
 )
+
+// PROVIDER INTERFACES & CAPABILITY ARCHITECTURE
+
+interface BaseProvider {
+    val id: String
+    val name: String
+    val baseUrl: String
+    val lang: String
+    val logoUrl: String?
+    val version: Int
+    val supportedTypes: List<MediaType>
+
+    suspend fun search(query: String): List<Title>
+    suspend fun getDetails(titleId: String): Title?
+}
+
+interface AnimeProvider : BaseProvider {
+    suspend fun getStreamUrls(episodeId: String): List<VideoSource>
+}
+
+interface MovieProvider : BaseProvider {
+    suspend fun getStreamUrls(mediaId: String): List<VideoSource>
+}
+
+interface TVProvider : BaseProvider {
+    suspend fun getStreamUrls(season: Int, episode: Int): List<VideoSource>
+}
+
+interface CartoonProvider : BaseProvider {
+    suspend fun getStreamUrls(episodeId: String): List<VideoSource>
+}
+
+interface MangaProvider : BaseProvider {
+    suspend fun getChapterPages(chapterId: String): List<String>
+}
+
+data class VideoSource(
+    val url: String,
+    val quality: String,
+    val format: String = "m3u8",
+    val headers: Map<String, String> = emptyMap()
+)

@@ -76,6 +76,82 @@ class ExtensionManager(context: Context) {
     )
 
     fun getExtensions(): List<ExtensionItem> {
-        return defaultExtensions
+        val installedJson = prefs.getString("installed_exts", null)
+        if (installedJson.isNullOrEmpty()) {
+            return defaultExtensions
+        }
+        val list = mutableListOf<ExtensionItem>()
+        try {
+            val array = org.json.JSONArray(installedJson)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                list.add(
+                    ExtensionItem(
+                        id = obj.getString("id"),
+                        name = obj.getString("name"),
+                        version = obj.getString("version"),
+                        type = try { ExtensionType.valueOf(obj.getString("type")) } catch (e: Exception) { ExtensionType.ANIME },
+                        iconUrl = obj.optString("iconUrl", ""),
+                        author = obj.optString("author", "Community"),
+                        isInstalled = obj.optBoolean("isInstalled", true),
+                        isEnabled = obj.optBoolean("isEnabled", true),
+                        hasUpdate = obj.optBoolean("hasUpdate", false),
+                        description = obj.optString("description", "")
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            return defaultExtensions
+        }
+        return list
+    }
+
+    fun toggleExtension(id: String, enabled: Boolean) {
+        val current = getExtensions().toMutableList()
+        val index = current.indexOfFirst { it.id == id }
+        if (index != -1) {
+            current[index] = current[index].copy(isEnabled = enabled)
+            saveExtensions(current)
+        }
+    }
+
+    fun installExtension(extension: ExtensionItem) {
+        val current = getExtensions().toMutableList()
+        current.removeAll { it.id == extension.id }
+        current.add(extension.copy(isInstalled = true, isEnabled = true, hasUpdate = false))
+        saveExtensions(current)
+    }
+
+    fun uninstallExtension(id: String) {
+        val current = getExtensions().toMutableList()
+        val index = current.indexOfFirst { it.id == id }
+        if (index != -1) {
+            current[index] = current[index].copy(isInstalled = false, isEnabled = false)
+            saveExtensions(current)
+        }
+    }
+
+    fun getFallbackProvider(type: ExtensionType): ExtensionItem? {
+        return getExtensions().firstOrNull { it.isInstalled && it.isEnabled && it.type == type }
+    }
+
+    private fun saveExtensions(list: List<ExtensionItem>) {
+        val array = org.json.JSONArray()
+        list.forEach { ext ->
+            val obj = org.json.JSONObject().apply {
+                put("id", ext.id)
+                put("name", ext.name)
+                put("version", ext.version)
+                put("type", ext.type.name)
+                put("iconUrl", ext.iconUrl)
+                put("author", ext.author)
+                put("isInstalled", ext.isInstalled)
+                put("isEnabled", ext.isEnabled)
+                put("hasUpdate", ext.hasUpdate)
+                put("description", ext.description)
+            }
+            array.put(obj)
+        }
+        prefs.edit().putString("installed_exts", array.toString()).apply()
     }
 }

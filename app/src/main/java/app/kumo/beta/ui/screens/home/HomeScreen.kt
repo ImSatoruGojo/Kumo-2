@@ -63,52 +63,76 @@ fun HomeScreen(
             .verticalScroll(scrollState)
             .padding(bottom = 80.dp)
     ) {
-        // TOP BAR: Search Bar + Filter Shortcut
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(23.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { onNavigateToSearch() }
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
+        // UI STYLE PICKER & TOP BAR
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Search anime, movies, series...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
-                    )
+                Text(
+                    text = "UI Style Mode",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("NETFLIX", "CRUNCHYROLL", "ANIYOMI", "CLOUDSTREAM").forEach { style ->
+                        FilterChip(
+                            selected = prefs.uiStyle == style,
+                            onClick = { prefs.uiStyle = style },
+                            label = { Text(style.take(4), fontSize = 10.sp) }
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            IconButton(
-                onClick = { onNavigateToSearchWithFilter() },
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(23.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.FilterList,
-                    contentDescription = "Filter",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(23.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { onNavigateToSearch() }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Search anime, movies, manga...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                IconButton(
+                    onClick = { onNavigateToSearchWithFilter() },
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(23.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "Filter",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
 

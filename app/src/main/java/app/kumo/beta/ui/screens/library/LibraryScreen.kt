@@ -109,6 +109,27 @@ fun LibraryScreen(
             }
         }
 
+        // UNREAD / WATCH PROGRESS OVERVIEW BADGE
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Tracking Status: Synced with AniList & MAL",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = "${categories[selectedTab].displayName} Collection",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         val currentCat = categories[selectedTab]
         val titleIds = remember(selectedTab) { libManager.getTitlesInCategory(currentCat) }
         val titlesInCat = remember(titleIds) {

@@ -66,6 +66,12 @@ class PreferencesManager(context: Context) {
             prefs.edit().putString("startup_page", value).apply()
         }
 
+    var uiStyle: String
+        get() = prefs.getString("ui_style", "NETFLIX") ?: "NETFLIX"
+        set(value) {
+            prefs.edit().putString("ui_style", value).apply()
+        }
+
     var rememberLastScreen: Boolean
         get() = prefs.getBoolean("remember_last_screen", true)
         set(value) {

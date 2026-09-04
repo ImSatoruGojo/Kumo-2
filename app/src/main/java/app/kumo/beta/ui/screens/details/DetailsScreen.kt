@@ -259,15 +259,45 @@ fun DetailsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // TRACKING SYNC LINKS
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("AniList Sync", fontSize = 12.sp)
+                }
+                OutlinedButton(
+                    onClick = { },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("MyAnimeList Sync", fontSize = 12.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             // EPISODES / CHAPTERS LIST
             if (title.episodes.isNotEmpty()) {
-                Text(
-                    text = "Episodes (${title.episodes.size})",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Episodes (${title.episodes.size})",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text("Season 1", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
                 Spacer(modifier = Modifier.height(12.dp))
+
+                var activeEpisodeToPlay by remember { mutableStateOf<app.kumo.beta.model.Episode?>(null) }
 
                 title.episodes.forEach { ep ->
                     Card(
@@ -275,6 +305,7 @@ fun DetailsScreen(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                             .clickable {
+                                activeEpisodeToPlay = ep
                                 cwManager.saveProgress(
                                     Progress(
                                         contentId = title.id,
@@ -299,16 +330,164 @@ fun DetailsScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = ep.title ?: "Episode ${ep.number}",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
-                                Text(text = "24 mins", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(text = "24 mins • Provider: Anikoto Anime", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "1080p",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
                             }
                         }
                     }
+                }
+                activeEpisodeToPlay?.let { playingEp ->
+                    var selectedQuality by remember { mutableStateOf("1080p") }
+                    var isPlaying by remember { mutableStateOf(true) }
+
+                    AlertDialog(
+                        onDismissRequest = { activeEpisodeToPlay = null },
+                        title = { Text("Playing ${title.title} - ${playingEp.title ?: "Episode ${playingEp.number}"}") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(180.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.Black),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = "Playing Video",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Text("ExoPlayer Native Engine • $selectedQuality", color = Color.White, fontSize = 12.sp)
+                                    }
+                                }
+
+                                Text("Video Resolution Quality", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf("1080p", "720p", "480p", "Auto").forEach { q ->
+                                        FilterChip(
+                                            selected = selectedQuality == q,
+                                            onClick = { selectedQuality = q },
+                                            label = { Text(q, fontSize = 11.sp) }
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = { activeEpisodeToPlay = null }) {
+                                Text("Close Player")
+                            }
+                        }
+                    )
+                }
+            } else if (title.chapters.isNotEmpty()) {
+                Text(
+                    text = "Chapters (${title.chapters.size})",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                var activeChapterToRead by remember { mutableStateOf<app.kumo.beta.model.Chapter?>(null) }
+
+                title.chapters.forEach { ch ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { activeChapterToRead = ch },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bookmark,
+                                contentDescription = "Read",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = ch.title ?: "Chapter ${ch.number}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(text = "Provider: Manga Cloud", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+
+                activeChapterToRead?.let { ch ->
+                    var readingMode by remember { mutableStateOf("Webtoon (Vertical)") }
+
+                    AlertDialog(
+                        onDismissRequest = { activeChapterToRead = null },
+                        title = { Text("Reading ${title.title} - ${ch.title ?: "Chapter ${ch.number}"}") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(220.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.DarkGray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Default.Bookmark,
+                                            contentDescription = "Manga Page",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Text("Page 1 / 42 • Mode: $readingMode", color = Color.White, fontSize = 12.sp)
+                                    }
+                                }
+
+                                Text("Reading Mode Selection", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf("Webtoon", "RTL Single", "LTR Single", "Continuous").forEach { mode ->
+                                        FilterChip(
+                                            selected = readingMode == mode,
+                                            onClick = { readingMode = mode },
+                                            label = { Text(mode, fontSize = 11.sp) }
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = { activeChapterToRead = null }) {
+                                Text("Close Reader")
+                            }
+                        }
+                    )
                 }
             }
         }

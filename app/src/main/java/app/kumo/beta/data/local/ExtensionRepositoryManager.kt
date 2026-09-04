@@ -109,6 +109,51 @@ class ExtensionRepositoryManager(context: Context) {
         }
     }
 
+    fun parseRepositoryIndexJson(jsonString: String, format: RepoFormat): List<ExtensionRepositoryItem> {
+        val list = mutableListOf<ExtensionRepositoryItem>()
+        try {
+            if (jsonString.trim().startsWith("[")) {
+                val array = JSONArray(jsonString)
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    list.add(
+                        ExtensionRepositoryItem(
+                            id = obj.optString("id", obj.optString("pkg", "ext_$i")),
+                            name = obj.optString("name", "Unknown Provider"),
+                            version = obj.optString("version", "1.0.0"),
+                            apkUrl = obj.optString("apk", obj.optString("url", "")),
+                            iconUrl = obj.optString("icon", ""),
+                            language = obj.optString("lang", "en"),
+                            nsfw = obj.optBoolean("nsfw", false)
+                        )
+                    )
+                }
+            } else if (jsonString.trim().startsWith("{")) {
+                val root = JSONObject(jsonString)
+                val repos = root.optJSONArray("repos") ?: root.optJSONArray("extensions")
+                if (repos != null) {
+                    for (i in 0 until repos.length()) {
+                        val obj = repos.getJSONObject(i)
+                        list.add(
+                            ExtensionRepositoryItem(
+                                id = obj.optString("id", obj.optString("pkg", "ext_$i")),
+                                name = obj.optString("name", "Unknown Provider"),
+                                version = obj.optString("version", "1.0.0"),
+                                apkUrl = obj.optString("apk", obj.optString("url", "")),
+                                iconUrl = obj.optString("icon", ""),
+                                language = obj.optString("lang", "en"),
+                                nsfw = obj.optBoolean("nsfw", false)
+                            )
+                        )
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            /* Fallback parsing */
+        }
+        return list
+    }
+
     private fun saveRepositories(repos: List<ExtensionRepository>) {
         val array = JSONArray()
         repos.forEach { repo ->
@@ -126,3 +171,13 @@ class ExtensionRepositoryManager(context: Context) {
         prefs.edit().putString("custom_repos", array.toString()).apply()
     }
 }
+
+data class ExtensionRepositoryItem(
+    val id: String,
+    val name: String,
+    val version: String,
+    val apkUrl: String,
+    val iconUrl: String,
+    val language: String,
+    val nsfw: Boolean
+)
