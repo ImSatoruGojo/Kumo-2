@@ -430,7 +430,7 @@ fun DetailsScreen(
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
-                                Text(text = "24 mins • Provider: Anikoto Anime", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(text = "24 mins", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Surface(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
@@ -531,7 +531,7 @@ fun DetailsScreen(
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
-                                Text(text = "Provider: Manga Cloud", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(text = "Chapter ${ch.number}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
