@@ -166,10 +166,12 @@ object DemoData {
 
     fun byType(type: MediaType): List<Title> = allTitles.filter { it.type == type }
 
+    private val unifiedRepo = app.kumo.beta.data.source.UnifiedRepository()
+
     fun search(query: String): List<Title> {
         if (query.isBlank()) return emptyList()
         val q = query.trim().lowercase()
-        return allTitles
+        val rawMatches = allTitles
             .map { title ->
                 val score = when {
                     title.title.lowercase() == q -> 100
@@ -183,6 +185,11 @@ object DemoData {
             .filter { it.second > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
+
+        // De-duplicate and merge matching entries by normalized title string
+        return rawMatches.distinctBy { title ->
+            title.title.lowercase().replace(Regex("[^a-z0-9]"), "").trim()
+        }
     }
 
     fun getById(id: String): Title? = allTitles.find { it.id == id }
