@@ -49,9 +49,9 @@ fun SearchScreen(
     var selectedSort by remember { mutableStateOf("Popularity") }
     var showFilterSheet by remember { mutableStateOf(false) }
 
-    // Search History List State
+    // Search History List State initialized dynamically
     val searchHistoryList = remember {
-        mutableStateListOf("Solo Leveling", "Jujutsu Kaisen", "Attack on Titan", "Demon Slayer")
+        mutableStateListOf<String>()
     }
 
     val allTitles = remember { DemoData.allTitles }
