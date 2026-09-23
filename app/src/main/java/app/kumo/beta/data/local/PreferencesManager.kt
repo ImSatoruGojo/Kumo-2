@@ -520,6 +520,42 @@ class PreferencesManager(context: Context) {
             prefs.edit().putString("preferred_quality", value).apply()
         }
 
+    // Search History Persistence
+    var searchHistory: List<String>
+        get() {
+            val jsonStr = prefs.getString("search_history_list", null) ?: return emptyList()
+            return try {
+                val array = org.json.JSONArray(jsonStr)
+                (0 until array.length()).map { array.getString(it) }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        set(value) {
+            val array = org.json.JSONArray()
+            value.take(20).forEach { array.put(it) }
+            prefs.edit().putString("search_history_list", array.toString()).apply()
+        }
+
+    fun addSearchQuery(query: String) {
+        val q = query.trim()
+        if (q.isBlank()) return
+        val current = searchHistory.toMutableList()
+        current.removeAll { it.equals(q, ignoreCase = true) }
+        current.add(0, q)
+        searchHistory = current.take(20)
+    }
+
+    fun removeSearchQuery(query: String) {
+        val current = searchHistory.toMutableList()
+        current.removeAll { it.equals(query, ignoreCase = true) }
+        searchHistory = current
+    }
+
+    fun clearSearchHistory() {
+        prefs.edit().remove("search_history_list").apply()
+    }
+
     fun resetAll() {
         prefs.edit().clear().apply()
     }

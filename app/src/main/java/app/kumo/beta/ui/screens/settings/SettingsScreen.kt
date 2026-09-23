@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -23,13 +22,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.R
 import app.kumo.beta.data.local.*
 import app.kumo.beta.ui.components.CircularColorPickerDialog
-import app.kumo.beta.ui.components.KumoColorPresets
+import kotlinx.coroutines.launch
 
 enum class SettingsSubmenu(val title: String, val icon: ImageVector) {
     GENERAL("General", Icons.Default.Tune),
@@ -203,7 +201,6 @@ fun GeneralSettings() {
     ) {
         Text("General Preferences", fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
-        // App Language Selection
         Card(
             modifier = Modifier.fillMaxWidth().clickable { showLangDialog = true },
             shape = RoundedCornerShape(12.dp),
@@ -222,7 +219,6 @@ fun GeneralSettings() {
             }
         }
 
-        // Startup Page Selection
         Column {
             Text("Startup Page", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(6.dp))
@@ -1104,12 +1100,18 @@ fun DownloadsManagerScreen() {
 @Composable
 fun ExtensionsManagerScreen() {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val repoManager = remember { ExtensionRepositoryManager(context) }
+    val extensionManager = remember { ExtensionManager(context) }
+
     var repositories by remember { mutableStateOf(repoManager.getRepositories()) }
+    var installedExtensions by remember { mutableStateOf(extensionManager.getExtensions()) }
 
     var showAddRepoDialog by remember { mutableStateOf(false) }
     var newRepoUrl by remember { mutableStateOf("") }
     var newRepoName by remember { mutableStateOf("") }
+    var isSyncing by remember { mutableStateOf(false) }
+    var syncMessage by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -1135,6 +1137,21 @@ fun ExtensionsManagerScreen() {
         }
 
         Text("Active Aniyomi, Mihon & CloudStream Repositories", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        if (syncMessage.isNotEmpty()) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = syncMessage,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+        }
 
         repositories.forEach { repo ->
             Card(
@@ -1170,6 +1187,26 @@ fun ExtensionsManagerScreen() {
                     ) {
                         TextButton(
                             onClick = {
+                                isSyncing = true
+                                syncMessage = "Fetching ${repo.name}..."
+                                coroutineScope.launch {
+                                    val result = repoManager.fetchAndSyncRepository(repo.url, repo.name)
+                                    isSyncing = false
+                                    if (result.isSuccess) {
+                                        repositories = repoManager.getRepositories()
+                                        installedExtensions = extensionManager.getExtensions()
+                                        syncMessage = "Successfully synced ${repo.name}!"
+                                    } else {
+                                        syncMessage = "Failed to sync: ${result.exceptionOrNull()?.message}"
+                                    }
+                                }
+                            }
+                        ) {
+                            Text("Sync Manifest")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(
+                            onClick = {
                                 repoManager.removeRepository(repo.id)
                                 repositories = repoManager.getRepositories()
                             }
@@ -1177,6 +1214,36 @@ fun ExtensionsManagerScreen() {
                             Text("Remove", color = MaterialTheme.colorScheme.error)
                         }
                     }
+                }
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        Text("Installed Source Providers (${installedExtensions.size})", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+
+        installedExtensions.forEach { ext ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(ext.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("v${ext.version} • ${ext.type.name} • ${ext.author}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = ext.isEnabled,
+                        onCheckedChange = { isChecked ->
+                            extensionManager.toggleExtension(ext.id, isChecked)
+                            installedExtensions = extensionManager.getExtensions()
+                        }
+                    )
                 }
             }
         }
@@ -1191,7 +1258,7 @@ fun ExtensionsManagerScreen() {
                     OutlinedTextField(
                         value = newRepoName,
                         onValueChange = { newRepoName = it },
-                        label = { Text("Repository Name") },
+                        label = { Text("Repository Name (Optional)") },
                         singleLine = true
                     )
                     OutlinedTextField(
@@ -1206,25 +1273,29 @@ fun ExtensionsManagerScreen() {
                 Button(
                     onClick = {
                         if (newRepoUrl.isNotBlank()) {
-                            val name = if (newRepoName.isBlank()) "Custom Extension Repo" else newRepoName
-                            val newRepo = ExtensionRepository(
-                                id = "custom_" + System.currentTimeMillis(),
-                                name = name,
-                                url = newRepoUrl.trim(),
-                                format = RepoFormat.ANIYOMI_MIHON,
-                                extensionCount = 45,
-                                isEnabled = true,
-                                isTrusted = true
-                            )
-                            repoManager.addRepository(newRepo)
-                            repositories = repoManager.getRepositories()
+                            val urlToSync = newRepoUrl.trim()
+                            val nameToSync = newRepoName.trim()
+                            showAddRepoDialog = false
+                            isSyncing = true
+                            syncMessage = "Adding repository and fetching manifest..."
+                            coroutineScope.launch {
+                                val result = repoManager.fetchAndSyncRepository(urlToSync, nameToSync)
+                                isSyncing = false
+                                if (result.isSuccess) {
+                                    repositories = repoManager.getRepositories()
+                                    installedExtensions = extensionManager.getExtensions()
+                                    syncMessage = "Repository added & synced successfully!"
+                                } else {
+                                    syncMessage = "Repository added offline (HTTP error or fallback)"
+                                    repositories = repoManager.getRepositories()
+                                }
+                            }
                             newRepoName = ""
                             newRepoUrl = ""
-                            showAddRepoDialog = false
                         }
                     }
                 ) {
-                    Text("Add Repository")
+                    Text("Add & Sync")
                 }
             },
             dismissButton = {

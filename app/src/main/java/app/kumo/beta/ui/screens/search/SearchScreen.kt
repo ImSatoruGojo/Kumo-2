@@ -49,10 +49,8 @@ fun SearchScreen(
     var selectedSort by remember { mutableStateOf("Popularity") }
     var showFilterSheet by remember { mutableStateOf(false) }
 
-    // Search History List State initialized dynamically
-    val searchHistoryList = remember {
-        mutableStateListOf<String>()
-    }
+    // Search History List backed by PreferencesManager
+    var searchHistoryList by remember { mutableStateOf(prefs.searchHistory) }
 
     val allTitles = remember { DemoData.allTitles }
     val expandedGenres = listOf(
@@ -79,9 +77,17 @@ fun SearchScreen(
         }
     }
 
+    val handleExecuteSearch = { searchText: String ->
+        val trimmed = searchText.trim()
+        if (trimmed.isNotBlank()) {
+            prefs.addSearchQuery(trimmed)
+            searchHistoryList = prefs.searchHistory
+        }
+    }
+
     val handleDetails = { title: Title ->
-        if (query.isNotBlank() && !searchHistoryList.contains(query.trim())) {
-            searchHistoryList.add(0, query.trim())
+        if (query.isNotBlank()) {
+            handleExecuteSearch(query)
         }
         onNavigateToDetails(title.id)
         onTitleClick(title)
@@ -100,9 +106,14 @@ fun SearchScreen(
         ) {
             OutlinedTextField(
                 value = query,
-                onValueChange = { query = it },
+                onValueChange = {
+                    query = it
+                    if (it.trim().length > 2) {
+                        handleExecuteSearch(it)
+                    }
+                },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Search titles, genres, year...") },
+                placeholder = { Text("Search anime, movies, manga...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
@@ -166,7 +177,8 @@ fun SearchScreen(
                     )
                 }
                 TextTextButton(text = "Clear History") {
-                    searchHistoryList.clear()
+                    prefs.clearSearchHistory()
+                    searchHistoryList = emptyList()
                 }
             }
 
@@ -175,9 +187,22 @@ fun SearchScreen(
                 modifier = Modifier.padding(vertical = 4.dp)
             ) {
                 items(searchHistoryList) { histQuery ->
-                    SuggestionChip(
+                    InputChip(
+                        selected = false,
                         onClick = { query = histQuery },
-                        label = { Text(histQuery, fontSize = 12.sp) }
+                        label = { Text(histQuery, fontSize = 12.sp) },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove",
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clickable {
+                                        prefs.removeSearchQuery(histQuery)
+                                        searchHistoryList = prefs.searchHistory
+                                    }
+                            )
+                        }
                     )
                 }
             }

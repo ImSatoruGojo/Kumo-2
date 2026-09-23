@@ -447,51 +447,18 @@ fun DetailsScreen(
                     }
                 }
                 activeEpisodeToPlay?.let { playingEp ->
-                    var selectedQuality by remember { mutableStateOf("1080p") }
-                    var isPlaying by remember { mutableStateOf(true) }
-
-                    AlertDialog(
+                    val videoSampleUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                    androidx.compose.ui.window.Dialog(
                         onDismissRequest = { activeEpisodeToPlay = null },
-                        title = { Text("Playing ${title.title} - ${playingEp.title ?: "Episode ${playingEp.number}"}") },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(180.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.Black),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "Playing Video",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                        Text("ExoPlayer Native Engine • $selectedQuality", color = Color.White, fontSize = 12.sp)
-                                    }
-                                }
-
-                                Text("Video Resolution Quality", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    listOf("1080p", "720p", "480p", "Auto").forEach { q ->
-                                        FilterChip(
-                                            selected = selectedQuality == q,
-                                            onClick = { selectedQuality = q },
-                                            label = { Text(q, fontSize = 11.sp) }
-                                        )
-                                    }
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            Button(onClick = { activeEpisodeToPlay = null }) {
-                                Text("Close Player")
-                            }
-                        }
-                    )
+                        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+                    ) {
+                        app.kumo.beta.ui.components.KumoVideoPlayer(
+                            videoUrl = videoSampleUrl,
+                            title = title.title,
+                            subtitle = playingEp.title ?: "Episode ${playingEp.number}",
+                            onClose = { activeEpisodeToPlay = null }
+                        )
+                    }
                 }
             } else if (title.chapters.isNotEmpty()) {
                 Text(
