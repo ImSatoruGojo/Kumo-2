@@ -1,3 +1,5 @@
+package app.kumo.beta
+
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -6,8 +8,6 @@ import androidx.compose.runtime.setValue
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.data.local.AppThemeMode
 import app.kumo.beta.data.local.AccentColorOption
-package app.kumo.beta
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
