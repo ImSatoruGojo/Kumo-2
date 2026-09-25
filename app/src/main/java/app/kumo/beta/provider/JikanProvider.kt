@@ -32,7 +32,11 @@ class JikanProvider : KumoProvider {
         val data = request("https://api.jikan.moe/v4/anime/" + malId + "/episodes?limit=100").optJSONArray("data") ?: return emptyList()
         return (0 until data.length()).mapNotNull { i ->
             data.optJSONObject(i)?.let { ep ->
-                Episode("jikan:" + malId + ":" + ep.optInt("mal_id", i + 1), ep.optInt("mal_id", i + 1), ep.optString("title").takeIf { it.isNotBlank() })
+                Episode(
+                    id = "jikan:" + malId + ":" + ep.optInt("mal_id", i + 1),
+                    number = ep.optInt("mal_id", i + 1),
+                    title = ep.optString("title").takeIf { it.isNotBlank() }
+                )
             }
         }
     }
@@ -57,12 +61,18 @@ class JikanProvider : KumoProvider {
         val genreList = if (genres == null) emptyList() else (0 until genres.length()).mapNotNull {
             genres.optJSONObject(it)?.optString("name")?.takeIf(String::isNotBlank)
         }
-        return (existing ?: Title(\n                id = "mal:" + malId,\n                title = optString("title").ifBlank { optString("title_english") },\n                type = MediaType.ANIME,\n                description = optString("synopsis")\n            )).copy(
+        return (existing ?: Title(
+            id = "mal:" + malId,
+            title = optString("title").ifBlank { optString("title_english") },
+            type = MediaType.ANIME,
+            description = optString("synopsis")
+        )).copy(
             title = optString("title_english").ifBlank { optString("title") },
             description = optString("synopsis"),
             genres = genreList,
             year = optJSONObject("aired")?.optString("from")?.take(4)?.toIntOrNull(),
-            posterUrl = images?.optString("large_image_url")?.takeIf(String::isNotBlank) ?: images?.optString("image_url")?.takeIf(String::isNotBlank),
+            posterUrl = images?.optString("large_image_url")?.takeIf(String::isNotBlank)
+                ?: images?.optString("image_url")?.takeIf(String::isNotBlank),
             rating = optDouble("score").takeIf { it > 0 }?.toFloat()
         )
     }
