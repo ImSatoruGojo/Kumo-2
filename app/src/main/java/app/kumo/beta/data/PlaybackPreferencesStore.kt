@@ -7,18 +7,22 @@ class PlaybackPreferencesStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("playback_preferences", Context.MODE_PRIVATE)
 
     fun get(): PlaybackPreferences = PlaybackPreferences(
-        preferredLanguage = prefs.getString("preferredLanguage", null),
-        preferredQuality = prefs.getInt("preferredQuality", 0).takeIf { it > 0 },
-        autoPlayNext = prefs.getBoolean("autoPlayNext", true),
-        skipIntroSeconds = prefs.getInt("skipIntroSeconds", 0)
+        defaultQuality = prefs.getInt("preferredQuality", 0).takeIf { it > 0 },
+        playbackSpeed = prefs.getFloat("playbackSpeed", 1f),
+        autoplayNext = prefs.getBoolean("autoPlayNext", true),
+        seekSeconds = prefs.getInt("seekSeconds", 10),
+        preferredAudio = prefs.getString("preferredAudio", null),
+        preferredSubtitle = prefs.getString("preferredSubtitle", null)
     )
 
     fun set(preferences: PlaybackPreferences) {
         prefs.edit()
-            .putString("preferredLanguage", preferences.preferredLanguage)
-            .putInt("preferredQuality", preferences.preferredQuality ?: 0)
-            .putBoolean("autoPlayNext", preferences.autoPlayNext)
-            .putInt("skipIntroSeconds", preferences.skipIntroSeconds)
+            .putInt("preferredQuality", preferences.defaultQuality ?: 0)
+            .putFloat("playbackSpeed", preferences.playbackSpeed)
+            .putBoolean("autoPlayNext", preferences.autoplayNext)
+            .putInt("seekSeconds", preferences.seekSeconds)
+            .putString("preferredAudio", preferences.preferredAudio)
+            .putString("preferredSubtitle", preferences.preferredSubtitle)
             .apply()
     }
 }
