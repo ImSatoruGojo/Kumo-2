@@ -32,10 +32,23 @@ fun SettingsScreen() {
     val extensionInstaller = remember { ExtensionInstaller(context) }
     var repositories by remember { mutableStateOf(repositoryManager.getRepositories()) }
     var extensions by remember { mutableStateOf(repositoryManager.getAllExtensions()) }
+    var installed by remember { mutableStateOf(extensionInstaller.installed()) }
     var repositoryUrl by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    fun refreshUi() { repositories = repositoryManager.getRepositories(); extensions = repositoryManager.getAllExtensions() }
+    fun refreshUi() {
+        repositories = repositoryManager.getRepositories()
+        extensions = repositoryManager.getAllExtensions().map { extension ->
+            val current = extensionInstaller.installed().firstOrNull { it.id == extension.id }
+            extension.copy(
+                installed = current != null,
+                enabled = current?.enabled ?: extension.enabled,
+                version = current?.version ?: extension.version,
+                versionCode = current?.versionCode ?: extension.versionCode
+            )
+        }
+        installed = extensionInstaller.installed()
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(KumoBlack).padding(16.dp),
@@ -86,7 +99,12 @@ fun SettingsScreen() {
         if (extensions.isNotEmpty()) {
             item { Text("Available extensions", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold); Spacer(Modifier.height(8.dp)) }
             items(extensions, key = { it.id }) { extension ->
-                ExtensionRow(extension, extensionInstaller, onInstalled = { status = "Installed " + extension.name }, onError = { status = it })
+                ExtensionRow(
+                    extension,
+                    extensionInstaller,
+                    onChanged = { refreshUi() },
+                    onError = { status = it }
+                )
                 Spacer(Modifier.height(8.dp))
             }
         }
@@ -108,14 +126,54 @@ private fun RepositoryRow(repository: Repository, onRefresh: () -> Unit, onRemov
 }
 
 @Composable
-private fun ExtensionRow(extension: ExtensionInfo, installer: ExtensionInstaller, onInstalled: () -> Unit, onError: (String) -> Unit) {
+private fun ExtensionRow(
+    extension: ExtensionInfo,
+    installer: ExtensionInstaller,
+    onChanged: () -> Unit,
+    onError: (String) -> Unit
+) {
     var installing by remember(extension.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(12.dp)).padding(12.dp)) {
         Text(extension.name, color = Color.White, fontWeight = FontWeight.SemiBold)
         Text(extension.type.name, color = KumoTextSecondary, fontSize = 12.sp)
         extension.version?.let { Text("Version " + it, color = KumoTextSecondary, fontSize = 12.sp) }
-        Button(enabled = !installing, onClick = { installing = true; scope.launch { installer.install(extension).onSuccess { onInstalled() }.onFailure { onError(it.message ?: "Installation failed") }; installing = false } }) { Text(if (installing) "Installing…" else "Install") }
+        if (extension.installed) {
+            Text(
+                if (extension.enabled) "Installed and enabled" else "Installed and disabled",
+                color = KumoTextSecondary,
+                fontSize = 12.sp
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    installer.setEnabled(extension.id, !extension.enabled)
+                    onChanged()
+                }) {
+                    Text(if (extension.enabled) "Disable" else "Enable")
+                }
+                TextButton(onClick = {
+                    installer.removeInstalled(extension.id)
+                    onChanged()
+                }) {
+                    Text("Uninstall", color = KumoTextSecondary)
+                }
+            }
+        } else {
+            Button(
+                enabled = !installing,
+                onClick = {
+                    installing = true
+                    scope.launch {
+                        installer.install(extension)
+                            .onSuccess { onChanged() }
+                            .onFailure { onError(it.message ?: "Installation failed") }
+                        installing = false
+                    }
+                }
+            ) {
+                Text(if (installing) "Installing…" else "Install")
+            }
+        }
     }
 }
 
