@@ -4,6 +4,13 @@ import app.kumo.beta.model.Episode
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
 
+data class KumoAudioTrack(
+    val id: String,
+    val language: String? = null,
+    val label: String? = null,
+    val isDefault: Boolean = false
+)
+
 data class KumoSearchResult(val title: Title, val providerId: String)
 
 data class KumoStreamSource(
@@ -11,6 +18,8 @@ data class KumoStreamSource(
     val quality: Int? = null,
     val language: String? = null,
     val audioType: String? = null,
+    val audioTracks: List<KumoAudioTrack> = emptyList(),
+    val subtitles: List<KumoSubtitle> = emptyList(),
     val headers: Map<String, String> = emptyMap(),
     val referer: String? = null,
     val mimeType: String? = null,
