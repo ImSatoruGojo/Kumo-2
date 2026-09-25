@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.data.DemoData
+import app.kumo.beta.data.local.PreferencesManager
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
 import app.kumo.beta.provider.ProviderEngine
@@ -43,6 +44,8 @@ fun SearchScreen(
     var selectedGenre by remember { mutableStateOf<String?>(null) }
     var showFilters by remember { mutableStateOf(openFiltersInitially) }
     var searching by remember { mutableStateOf(false) }
+    val preferencesManager = remember { PreferencesManager(LocalContext.current) }
+    var searchHistory by remember { mutableStateOf(preferencesManager.searchHistory) }
 
     val voiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -58,6 +61,8 @@ fun SearchScreen(
         }
         delay(250)
         searching = true
+        preferencesManager.addSearchQuery(query)
+        searchHistory = preferencesManager.searchHistory
         val providerResults = runCatching { providerEngine.search(query) }.getOrDefault(emptyList()).map { it.title }
         val localResults = DemoData.search(query)
         results = (providerResults + localResults)
@@ -126,6 +131,15 @@ fun SearchScreen(
 
         if (searching) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
+        if (query.isBlank() && searchHistory.isNotEmpty()) {
+            Text("Recent searches", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+                searchHistory.take(5).forEach { recent ->
+                    FilterChip(selected = false, onClick = { query = recent }, label = { Text(recent) })
+                }
+            }
         }
 
         Text(
