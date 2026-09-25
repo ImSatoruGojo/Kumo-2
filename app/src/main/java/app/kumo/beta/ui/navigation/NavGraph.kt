@@ -87,7 +87,7 @@ fun KumoNavGraph() {
     }
 
     Scaffold(
-        containerColor = KumoBlack,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(
