@@ -1,5 +1,10 @@
 package app.kumo.beta.ui.navigation
 
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -59,6 +64,17 @@ fun KumoNavGraph() {
     val extensionManager = remember { ExtensionManager(context, providerRegistry) }
     val providerEngine = remember { ProviderEngine(providerRegistry) }
     val sourceResolver = remember { SourceResolver(providerRegistry) }
+    val homeVoiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spoken.isNullOrBlank()) {
+                navController.navigate(Screen.Search.route) {
+                    launchSingleTop = true
+                }
+                navController.currentBackStackEntry?.savedStateHandle?.set("searchQuery", spoken)
+            }
+        }
+    }
 
     LaunchedEffect(extensionManager) {
         extensionManager.loadInstalled()
