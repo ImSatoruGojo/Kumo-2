@@ -95,8 +95,8 @@ class DownloadManager(context: Context) {
             upsert(item)
 
             val connection = URL(sourceUrl).openConnection() as HttpURLConnection
-            connection.connectTimeout = 15000
-            connection.readTimeout = 30000
+            connection.connectTimeout = settings.get().networkTimeoutSeconds * 1000
+            connection.readTimeout = settings.get().networkTimeoutSeconds * 2000
             connection.instanceFollowRedirects = true
             connection.setRequestProperty("User-Agent", "Kumo/0.1")
             require(connection.responseCode in 200..299) { "Download returned HTTP " + connection.responseCode }
