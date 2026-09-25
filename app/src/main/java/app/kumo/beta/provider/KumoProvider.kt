@@ -43,4 +43,5 @@ interface KumoProvider {
     suspend fun getEpisodes(title: Title): List<Episode>
     suspend fun getSources(episode: Episode): List<KumoStreamSource>
     suspend fun getSubtitles(source: KumoStreamSource): List<KumoSubtitle>
+    suspend fun getCatalog(section: String): List<KumoSearchResult> = emptyList()
 }
