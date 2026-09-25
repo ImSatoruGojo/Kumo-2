@@ -1,7 +1,5 @@
 package app.kumo.beta.data.local
 
-import android.content.Context
-
 data class SettingsPreferences(
     val theme: String = "Dark",
     val appLanguage: String = "System",
@@ -19,14 +17,37 @@ data class SettingsPreferences(
     val continueWatching: Boolean = true,
     val wifiOnlyDownloads: Boolean = true,
     val confirmDownloads: Boolean = true,
-    val showAdultContent: Boolean = false,
-    val reduceAnimations: Boolean = false
+    val reduceAnimations: Boolean = false,
+    val amoledMode: Boolean = false,
+    val accentColor: String = "White",
+    val startupPage: String = "Home",
+    val rememberLastScreen: Boolean = true,
+    val dataSaving: Boolean = false,
+    val showPopular: Boolean = true,
+    val showTrending: Boolean = true,
+    val showTopRated: Boolean = true,
+    val showContinueWatching: Boolean = true,
+    val showNewReleases: Boolean = true,
+    val showRecommended: Boolean = true,
+    val itemsPerRow: Int = 2,
+    val historySize: Int = 50,
+    val providerFallback: Boolean = true,
+    val playerDecoder: String = "Hardware",
+    val gestureVolume: Boolean = true,
+    val gestureBrightness: Boolean = true,
+    val pipEnabled: Boolean = true,
+    val keepScreenOn: Boolean = true,
+    val screenRotation: String = "Free",
+    val maxConcurrentDownloads: Int = 3,
+    val networkTimeoutSeconds: Int = 15,
+    val readingMode: String = "Vertical",
+    val readingDirection: String = "Right to Left"
 )
 
-class SettingsPreferencesStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("kumo_settings", Context.MODE_PRIVATE)
+class SettingsPreferencesStore(context: android.content.Context) {
+    private val prefs = context.applicationContext.getSharedPreferences("kumo_settings", android.content.Context.MODE_PRIVATE)
 
-    fun get(): SettingsPreferences = SettingsPreferences(
+    fun get() = SettingsPreferences(
         theme = prefs.getString("theme", "Dark") ?: "Dark",
         appLanguage = prefs.getString("language", "System") ?: "System",
         cacheLimitMb = prefs.getInt("cache_limit_mb", 512),
@@ -43,26 +64,74 @@ class SettingsPreferencesStore(context: Context) {
         continueWatching = prefs.getBoolean("continue_watching", true),
         wifiOnlyDownloads = prefs.getBoolean("wifi_only_downloads", true),
         confirmDownloads = prefs.getBoolean("confirm_downloads", true),
-        showAdultContent = prefs.getBoolean("show_adult_content", false),
-        reduceAnimations = prefs.getBoolean("reduce_animations", false)
+        reduceAnimations = prefs.getBoolean("reduce_animations", false),
+        amoledMode = prefs.getBoolean("amoled_mode", false),
+        accentColor = prefs.getString("accent_color", "White") ?: "White",
+        startupPage = prefs.getString("startup_page", "Home") ?: "Home",
+        rememberLastScreen = prefs.getBoolean("remember_last_screen", true),
+        dataSaving = prefs.getBoolean("data_saving", false),
+        showPopular = prefs.getBoolean("show_popular", true),
+        showTrending = prefs.getBoolean("show_trending", true),
+        showTopRated = prefs.getBoolean("show_top_rated", true),
+        showContinueWatching = prefs.getBoolean("show_continue_watching", true),
+        showNewReleases = prefs.getBoolean("show_new_releases", true),
+        showRecommended = prefs.getBoolean("show_recommended", true),
+        itemsPerRow = prefs.getInt("items_per_row", 2),
+        historySize = prefs.getInt("history_size", 50),
+        providerFallback = prefs.getBoolean("provider_fallback", true),
+        playerDecoder = prefs.getString("player_decoder", "Hardware") ?: "Hardware",
+        gestureVolume = prefs.getBoolean("gesture_volume", true),
+        gestureBrightness = prefs.getBoolean("gesture_brightness", true),
+        pipEnabled = prefs.getBoolean("pip_enabled", true),
+        keepScreenOn = prefs.getBoolean("keep_screen_on", true),
+        screenRotation = prefs.getString("screen_rotation", "Free") ?: "Free",
+        maxConcurrentDownloads = prefs.getInt("max_concurrent_downloads", 3),
+        networkTimeoutSeconds = prefs.getInt("network_timeout", 15),
+        readingMode = prefs.getString("reading_mode", "Vertical") ?: "Vertical",
+        readingDirection = prefs.getString("reading_direction", "Right to Left") ?: "Right to Left"
     )
 
-    fun setTheme(value: String) = prefs.edit().putString("theme", value).apply()
-    fun setLanguage(value: String) = prefs.edit().putString("language", value).apply()
-    fun setCacheLimitMb(value: Int) = prefs.edit().putInt("cache_limit_mb", value).apply()
-    fun setQuality(value: String) = prefs.edit().putString("quality", value).apply()
-    fun setSpeed(value: Float) = prefs.edit().putFloat("speed", value).apply()
-    fun setAutoplayNext(value: Boolean) = prefs.edit().putBoolean("autoplay_next", value).apply()
-    fun setSeekSeconds(value: Int) = prefs.edit().putInt("seek_seconds", value).apply()
-    fun setSkipOpening(value: Boolean) = prefs.edit().putBoolean("skip_opening", value).apply()
-    fun setAudio(value: String) = prefs.edit().putString("audio", value).apply()
-    fun setSubtitle(value: String) = prefs.edit().putString("subtitle", value).apply()
-    fun setAnimeLanguage(value: String) = prefs.edit().putString("anime_language", value).apply()
-    fun setMovieLanguage(value: String) = prefs.edit().putString("movie_language", value).apply()
-    fun setAutoMarkWatched(value: Boolean) = prefs.edit().putBoolean("auto_mark_watched", value).apply()
-    fun setContinueWatching(value: Boolean) = prefs.edit().putBoolean("continue_watching", value).apply()
-    fun setWifiOnlyDownloads(value: Boolean) = prefs.edit().putBoolean("wifi_only_downloads", value).apply()
-    fun setConfirmDownloads(value: Boolean) = prefs.edit().putBoolean("confirm_downloads", value).apply()
-    fun setShowAdultContent(value: Boolean) = prefs.edit().putBoolean("show_adult_content", value).apply()
-    fun setReduceAnimations(value: Boolean) = prefs.edit().putBoolean("reduce_animations", value).apply()
+    fun setTheme(v: String) = prefs.edit().putString("theme", v).apply()
+    fun setLanguage(v: String) = prefs.edit().putString("language", v).apply()
+    fun setCacheLimitMb(v: Int) = prefs.edit().putInt("cache_limit_mb", v).apply()
+    fun setQuality(v: String) = prefs.edit().putString("quality", v).apply()
+    fun setSpeed(v: Float) = prefs.edit().putFloat("speed", v).apply()
+    fun setAutoplayNext(v: Boolean) = prefs.edit().putBoolean("autoplay_next", v).apply()
+    fun setSeekSeconds(v: Int) = prefs.edit().putInt("seek_seconds", v).apply()
+    fun setSkipOpening(v: Boolean) = prefs.edit().putBoolean("skip_opening", v).apply()
+    fun setAudio(v: String) = prefs.edit().putString("audio", v).apply()
+    fun setSubtitle(v: String) = prefs.edit().putString("subtitle", v).apply()
+    fun setAnimeLanguage(v: String) = prefs.edit().putString("anime_language", v).apply()
+    fun setMovieLanguage(v: String) = prefs.edit().putString("movie_language", v).apply()
+    fun setAutoMarkWatched(v: Boolean) = prefs.edit().putBoolean("auto_mark_watched", v).apply()
+    fun setContinueWatching(v: Boolean) = prefs.edit().putBoolean("continue_watching", v).apply()
+    fun setWifiOnlyDownloads(v: Boolean) = prefs.edit().putBoolean("wifi_only_downloads", v).apply()
+    fun setConfirmDownloads(v: Boolean) = prefs.edit().putBoolean("confirm_downloads", v).apply()
+    fun setReduceAnimations(v: Boolean) = prefs.edit().putBoolean("reduce_animations", v).apply()
+    fun setAmoledMode(v: Boolean) = prefs.edit().putBoolean("amoled_mode", v).apply()
+    fun setAccentColor(v: String) = prefs.edit().putString("accent_color", v).apply()
+    fun setStartupPage(v: String) = prefs.edit().putString("startup_page", v).apply()
+    fun setRememberLastScreen(v: Boolean) = prefs.edit().putBoolean("remember_last_screen", v).apply()
+    fun setDataSaving(v: Boolean) = prefs.edit().putBoolean("data_saving", v).apply()
+    fun setShowPopular(v: Boolean) = prefs.edit().putBoolean("show_popular", v).apply()
+    fun setShowTrending(v: Boolean) = prefs.edit().putBoolean("show_trending", v).apply()
+    fun setShowTopRated(v: Boolean) = prefs.edit().putBoolean("show_top_rated", v).apply()
+    fun setShowContinueWatching(v: Boolean) = prefs.edit().putBoolean("show_continue_watching", v).apply()
+    fun setShowNewReleases(v: Boolean) = prefs.edit().putBoolean("show_new_releases", v).apply()
+    fun setShowRecommended(v: Boolean) = prefs.edit().putBoolean("show_recommended", v).apply()
+    fun setItemsPerRow(v: Int) = prefs.edit().putInt("items_per_row", v).apply()
+    fun setHistorySize(v: Int) = prefs.edit().putInt("history_size", v).apply()
+    fun setProviderFallback(v: Boolean) = prefs.edit().putBoolean("provider_fallback", v).apply()
+    fun setPlayerDecoder(v: String) = prefs.edit().putString("player_decoder", v).apply()
+    fun setGestureVolume(v: Boolean) = prefs.edit().putBoolean("gesture_volume", v).apply()
+    fun setGestureBrightness(v: Boolean) = prefs.edit().putBoolean("gesture_brightness", v).apply()
+    fun setPipEnabled(v: Boolean) = prefs.edit().putBoolean("pip_enabled", v).apply()
+    fun setKeepScreenOn(v: Boolean) = prefs.edit().putBoolean("keep_screen_on", v).apply()
+    fun setScreenRotation(v: String) = prefs.edit().putString("screen_rotation", v).apply()
+    fun setMaxConcurrentDownloads(v: Int) = prefs.edit().putInt("max_concurrent_downloads", v).apply()
+    fun setNetworkTimeout(v: Int) = prefs.edit().putInt("network_timeout", v).apply()
+    fun setReadingMode(v: String) = prefs.edit().putString("reading_mode", v).apply()
+    fun setReadingDirection(v: String) = prefs.edit().putString("reading_direction", v).apply()
+
+    fun resetAll() = prefs.edit().clear().apply()
 }
