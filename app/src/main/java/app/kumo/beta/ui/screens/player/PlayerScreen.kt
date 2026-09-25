@@ -195,6 +195,11 @@ fun PlayerScreen(
                                     sources.firstOrNull { it.quality == quality }?.let { selected = it }
                                     showQualityMenu = false
                                 })
+                if (settings.pipEnabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    TextButton(onClick = {
+                        (context as? android.app.Activity)?.enterPictureInPictureMode()
+                    }) { Text("PiP", color = KumoPurple) }
+                }
                             }
                         }
                     }
