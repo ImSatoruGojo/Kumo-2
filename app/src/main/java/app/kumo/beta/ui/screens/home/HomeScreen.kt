@@ -52,8 +52,19 @@ fun HomeScreen(
     val settingsStore = remember { SettingsPreferencesStore(context) }
     val settings = settingsStore.get()
     var allTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    var topTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    var newTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    var movieTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var featuredTitle by remember { mutableStateOf<Title?>(null) }
     LaunchedEffect(providerEngine) {
+        if (providerEngine != null) {
+            allTitles = providerEngine.catalog("popular", MediaType.ANIME).map { it.title }
+            topTitles = providerEngine.catalog("top_rated", MediaType.ANIME).map { it.title }
+            newTitles = providerEngine.catalog("new_releases", MediaType.ANIME).map { it.title }
+            movieTitles = providerEngine.catalog("popular", MediaType.MOVIE).map { it.title }
+            featuredTitle = allTitles.firstOrNull()
+        }
+    }
         if (providerEngine != null) {
             val popular = providerEngine.catalog("popular", MediaType.ANIME).map { it.title }
             allTitles = popular
@@ -193,10 +204,10 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(20.dp))
-        if (settings.showNewReleases) {
+        if (settings.showNewReleases && newTitles.isNotEmpty()) {
         Text("Movies", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(allTitles.filter { it.type == MediaType.MOVIE }) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
+            items(movieTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
         }        }
 
     }
