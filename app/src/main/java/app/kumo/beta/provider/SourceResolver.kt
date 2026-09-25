@@ -6,6 +6,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class SourceResolver(private val registry: ProviderRegistry) {
     suspend fun resolve(episode: Episode): List<KumoStreamSource> = withContext(Dispatchers.IO) {
@@ -13,7 +14,7 @@ class SourceResolver(private val registry: ProviderRegistry) {
             registry.getEnabledProviders()
                 .map { provider ->
                     async {
-                        runCatching { provider.getSources(episode) }.getOrDefault(emptyList())
+                        withTimeoutOrNull(12_000L) { provider.getSources(episode) }.orEmpty()
                     }
                 }
                 .awaitAll()
