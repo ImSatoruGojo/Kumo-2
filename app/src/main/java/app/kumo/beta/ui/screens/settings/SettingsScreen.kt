@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.data.local.StorageLocationManager
+import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.repository.ExtensionInfo
 import app.kumo.beta.repository.ExtensionInstaller
 import app.kumo.beta.repository.Repository
@@ -35,6 +36,8 @@ fun SettingsScreen() {
     val repositoryManager = remember { RepositoryManager(context) }
     val extensionInstaller = remember { ExtensionInstaller(context) }
     val storageManager = remember { StorageLocationManager(context) }
+    val settingsStore = remember { SettingsPreferencesStore(context) }
+    var settings by remember { mutableStateOf(settingsStore.get()) }
 
     var repositories by remember { mutableStateOf(repositoryManager.getRepositories()) }
     var extensions by remember { mutableStateOf(repositoryManager.getAllExtensions()) }
@@ -105,18 +108,38 @@ fun SettingsScreen() {
 
         item {
             SettingsGroup("General") {
-                SettingsItem("Theme", "Dark")
-                SettingsItem("App language", "System")
-                SettingsItem("Cache limit", "512 MB")
+                ChoiceItem("Theme", settings.theme, listOf("Dark", "Light", "System")) { settingsStore.setTheme(it); settings = settingsStore.get() }
+                ChoiceItem("App language", settings.appLanguage, listOf("System", "English")) { settingsStore.setLanguage(it); settings = settingsStore.get() }
+                ChoiceItem("Cache limit", "${settings.cacheLimitMb} MB", listOf("256 MB", "512 MB", "1024 MB", "2048 MB")) { settingsStore.setCacheLimitMb(it.removeSuffix(" MB").toInt()); settings = settingsStore.get() }
+                SwitchItem("Reduce animations", "Useful on lower end devices", settings.reduceAnimations) { settingsStore.setReduceAnimations(it); settings = settingsStore.get() }
             }
         }
 
         item {
             SettingsGroup("Player") {
-                SettingsItem("Default quality", "Auto")
-                SettingsItem("Playback speed", "1x")
-                SettingsItem("Autoplay next", "Off")
-                SettingsItem("Double tap seek", "10 seconds")
+                ChoiceItem("Default quality", settings.defaultQuality, listOf("Auto", "1080p", "720p", "480p", "360p")) { settingsStore.setQuality(it); settings = settingsStore.get() }
+                ChoiceItem("Playback speed", "${settings.playbackSpeed}x", listOf("0.75x", "1x", "1.25x", "1.5x", "2x")) { settingsStore.setSpeed(it.removeSuffix("x").toFloat()); settings = settingsStore.get() }
+                ChoiceItem("Double tap seek", "${settings.doubleTapSeekSeconds} seconds", listOf("5 seconds", "10 seconds", "15 seconds", "30 seconds")) { settingsStore.setSeekSeconds(it.removeSuffix(" seconds").toInt()); settings = settingsStore.get() }
+                SwitchItem("Autoplay next", "Start the next episode automatically", settings.autoplayNext) { settingsStore.setAutoplayNext(it); settings = settingsStore.get() }
+                SwitchItem("Skip opening", "Skip when supported by the source", settings.skipOpening) { settingsStore.setSkipOpening(it); settings = settingsStore.get() }
+                ChoiceItem("Default audio", settings.defaultAudio, listOf("Auto", "Dub", "Sub")) { settingsStore.setAudio(it); settings = settingsStore.get() }
+                ChoiceItem("Default subtitles", settings.defaultSubtitle, listOf("Auto", "On", "Off")) { settingsStore.setSubtitle(it); settings = settingsStore.get() }
+                ChoiceItem("Anime language", settings.animeLanguage, listOf("Dub", "Sub", "Auto")) { settingsStore.setAnimeLanguage(it); settings = settingsStore.get() }
+                ChoiceItem("Movie language", settings.movieLanguage, listOf("Dub", "Sub", "Auto")) { settingsStore.setMovieLanguage(it); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            SettingsGroup("Playback & History") {
+                SwitchItem("Continue watching", "Keep unfinished titles on Home", settings.continueWatching) { settingsStore.setContinueWatching(it); settings = settingsStore.get() }
+                SwitchItem("Auto mark watched", "Mark episodes after playback completes", settings.autoMarkWatched) { settingsStore.setAutoMarkWatched(it); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            SettingsGroup("Downloads") {
+                SwitchItem("Wi Fi only", "Only start downloads on unmetered Wi Fi", settings.wifiOnlyDownloads) { settingsStore.setWifiOnlyDownloads(it); settings = settingsStore.get() }
+                SwitchItem("Confirm downloads", "Ask before starting a download", settings.confirmDownloads) { settingsStore.setConfirmDownloads(it); settings = settingsStore.get() }
             }
         }
 
@@ -262,6 +285,34 @@ private fun ExtensionRow(
                 }
             ) { Text(if (installing) "Installing…" else "Install") }
         }
+    }
+}
+
+@Composable
+private fun ChoiceItem(label: String, value: String, options: List<String>, onSelected: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = Color.White, fontSize = 15.sp)
+        TextButton(onClick = { open = true }) { Text(value, color = KumoPurple) }
+    }
+    if (open) {
+        AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text(label) },
+            text = { Column { options.forEach { option -> TextButton(onClick = { open = false; onSelected(option) }, modifier = Modifier.fillMaxWidth()) { Text(option) } } } },
+            confirmButton = {}
+        )
+    }
+}
+
+@Composable
+private fun SwitchItem(label: String, description: String, checked: Boolean, onChanged: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(label, color = Color.White, fontSize = 15.sp)
+            Text(description, color = KumoTextSecondary, fontSize = 12.sp)
+        }
+        Switch(checked = checked, onCheckedChange = onChanged)
     }
 }
 
