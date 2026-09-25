@@ -520,6 +520,7 @@ fun DetailsScreen(
     }
 }
 
+
     pendingDownload?.let { episode ->
         AlertDialog(
             onDismissRequest = { pendingDownload = null },
