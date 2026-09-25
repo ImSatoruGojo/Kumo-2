@@ -32,7 +32,7 @@ import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
 import app.kumo.beta.ui.components.ContinueWatchingCard
 import app.kumo.beta.ui.components.TitleCard
-import coil.compose.AsyncImage
+import coil.compose.AsyncImage\nimport kotlinx.coroutines.delay\nimport kotlinx.coroutines.isActive
 
 @Composable
 fun HomeScreen(
