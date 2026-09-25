@@ -263,27 +263,6 @@ fun DetailsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // TRACKING SYNC LINKS
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("AniList Sync", fontSize = 12.sp)
-                }
-                OutlinedButton(
-                    onClick = { },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("MyAnimeList Sync", fontSize = 12.sp)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
             // CLOUDSTREAM-STYLE SEASON SELECTOR & EPISODE SYSTEM
             var selectedSeasonIndex by remember { mutableIntStateOf(0) }
             var showSeasonMenu by remember { mutableStateOf(false) }
@@ -431,18 +410,7 @@ fun DetailsScreen(
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
-                                Text(text = "24 mins", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "1080p",
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
+                                Text(text = ep.durationMs?.let { formatDuration(it) } ?: "Duration unavailable", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -540,4 +508,11 @@ fun DetailsScreen(
             }
         }
     }
+}
+
+private fun formatDuration(durationMs: Long): String {
+    val totalMinutes = (durationMs / 60_000L).toInt().coerceAtLeast(0)
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return if (hours > 0) hours.toString() + "h " + minutes + "m" else minutes.toString() + "m"
 }
