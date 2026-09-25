@@ -77,7 +77,7 @@ fun SettingsScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("Settings", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            Text("Settings", color = MaterialTheme.colorScheme.onSurface, fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Text("Playback, storage and extensions", color = KumoTextSecondary, fontSize = 13.sp)
         }
 
@@ -215,6 +215,90 @@ fun SettingsScreen() {
             }
             items(extensions, key = { it.id }) { extension ->
                 ExtensionRow(extension, extensionInstaller, { refreshUi() }, { status = it })
+            }
+        }
+
+        item {
+            SettingsGroup("Appearance") {
+                ChoiceItem("Accent color", settings.accentColor, listOf("White", "Orange", "Purple", "Blue", "Green")) { settingsStore.setAccentColor(it); settings = settingsStore.get() }
+                SwitchItem("AMOLED black", "Use a pure black background when supported", settings.amoledMode) { settingsStore.setAmoledMode(it); settings = settingsStore.get() }
+                SwitchItem("Data saving", "Reduce unnecessary artwork and network work", settings.dataSaving) { settingsStore.setDataSaving(it); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            SettingsGroup("Home") {
+                ChoiceItem("Startup page", settings.startupPage, listOf("Home", "Library")) { settingsStore.setStartupPage(it); settings = settingsStore.get() }
+                ChoiceItem("Items per row", settings.itemsPerRow.toString(), listOf("2", "3", "4", "5")) { settingsStore.setItemsPerRow(it.toInt()); settings = settingsStore.get() }
+                SwitchItem("Continue Watching section", "Show unfinished titles on Home", settings.showContinueWatching) { settingsStore.setShowContinueWatching(it); settings = settingsStore.get() }
+                SwitchItem("Popular section", "Show popular titles on Home", settings.showPopular) { settingsStore.setShowPopular(it); settings = settingsStore.get() }
+                SwitchItem("Trending section", "Show trending titles on Home", settings.showTrending) { settingsStore.setShowTrending(it); settings = settingsStore.get() }
+                SwitchItem("Top rated section", "Show top rated titles on Home", settings.showTopRated) { settingsStore.setShowTopRated(it); settings = settingsStore.get() }
+                SwitchItem("New releases section", "Show new releases when available", settings.showNewReleases) { settingsStore.setShowNewReleases(it); settings = settingsStore.get() }
+                SwitchItem("Recommended section", "Show recommendations when available", settings.showRecommended) { settingsStore.setShowRecommended(it); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            SettingsGroup("Providers") {
+                SwitchItem("Automatic fallback", "Try another enabled provider when the current one fails", settings.providerFallback) { settingsStore.setProviderFallback(it); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            SettingsGroup("Player controls") {
+                ChoiceItem("Decoder", settings.playerDecoder, listOf("Hardware", "Software")) { settingsStore.setPlayerDecoder(it); settings = settingsStore.get() }
+                SwitchItem("Volume gestures", "Allow player swipe gestures to control volume", settings.gestureVolume) { settingsStore.setGestureVolume(it); settings = settingsStore.get() }
+                SwitchItem("Brightness gestures", "Allow player swipe gestures to control brightness", settings.gestureBrightness) { settingsStore.setGestureBrightness(it); settings = settingsStore.get() }
+                SwitchItem("Picture in Picture", "Allow the player to enter Android PiP", settings.pipEnabled) { settingsStore.setPipEnabled(it); settings = settingsStore.get() }
+                SwitchItem("Keep screen on", "Prevent the display from sleeping during playback", settings.keepScreenOn) { settingsStore.setKeepScreenOn(it); settings = settingsStore.get() }
+                ChoiceItem("Screen rotation", settings.screenRotation, listOf("Free", "Portrait", "Landscape")) { settingsStore.setScreenRotation(it); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            SettingsGroup("Downloads & Network") {
+                ChoiceItem("Concurrent downloads", settings.maxConcurrentDownloads.toString(), listOf("1", "2", "3", "4")) { settingsStore.setMaxConcurrentDownloads(it.toInt()); settings = settingsStore.get() }
+                ChoiceItem("Network timeout", settings.networkTimeoutSeconds.toString() + " seconds", listOf("10 seconds", "15 seconds", "30 seconds", "60 seconds")) { settingsStore.setNetworkTimeout(it.removeSuffix(" seconds").toInt()); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            SettingsGroup("Reader") {
+                ChoiceItem("Reading mode", settings.readingMode, listOf("Vertical", "Paged", "Webtoon")) { settingsStore.setReadingMode(it); settings = settingsStore.get() }
+                ChoiceItem("Reading direction", settings.readingDirection, listOf("Right to Left", "Left to Right")) { settingsStore.setReadingDirection(it); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            SettingsGroup("History") {
+                ChoiceItem("History size", settings.historySize.toString(), listOf("20", "50", "100", "200")) { settingsStore.setHistorySize(it.toInt()); settings = settingsStore.get() }
+            }
+        }
+
+        item {
+            var showResetDialog by remember { mutableStateOf(false) }
+            SettingsGroup("Advanced") {
+                SwitchItem("Remember last screen", "Restore the last selected page when supported", settings.rememberLastScreen) { settingsStore.setRememberLastScreen(it); settings = settingsStore.get() }
+                TextButton(onClick = { showResetDialog = true }, modifier = Modifier.padding(horizontal = 12.dp)) {
+                    Text("Reset all settings", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            if (showResetDialog) {
+                AlertDialog(
+                    onDismissRequest = { showResetDialog = false },
+                    title = { Text("Reset all settings") },
+                    text = { Text("This restores Kumo preferences to their defaults") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            settingsStore.resetAll()
+                            settings = settingsStore.get()
+                            showResetDialog = false
+                            status = "Settings reset"
+                        }) { Text("Reset", color = MaterialTheme.colorScheme.error) }
+                    },
+                    dismissButton = { TextButton(onClick = { showResetDialog = false }) { Text("Cancel") } }
+                )
             }
         }
 
