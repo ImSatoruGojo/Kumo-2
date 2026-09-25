@@ -50,7 +50,8 @@ fun KumoNavGraph() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val showBottomBar = bottomScreens.any { it.route == currentRoute }\n    val providerRegistry = remember { ProviderRegistry().apply { registerProvider(JikanProvider()) } }\n    val providerEngine = remember { ProviderEngine(providerRegistry) }
+    val showBottomBar = bottomScreens.any { it.route == currentRoute }
+    val providerRegistry = remember { ProviderRegistry().apply { registerProvider(JikanProvider()) } }\n    val providerEngine = remember { ProviderEngine(providerRegistry) }
 
     Scaffold(
         containerColor = KumoBlack,
