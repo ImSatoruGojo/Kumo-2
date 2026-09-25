@@ -65,15 +65,23 @@ class RepositoryManager(context: Context) {
 
             if (parsed is RepositoryResult.Success) {
                 val updated = parsed.repository.copy(
+                    id = repo.id,
+                    url = repo.url,
                     enabled = repo.enabled,
                     lastRefresh = System.currentTimeMillis(),
                     lastRefreshStatus = "OK"
                 )
+                val normalizedExtensions = parsed.extensions.map { extension ->
+                    extension.copy(
+                        repositoryId = repo.id,
+                        repositoryUrl = repo.url
+                    )
+                }
                 val index = repositories.indexOfFirst { it.id == id }
                 if (index >= 0) repositories[index] = updated
-                extensions[id] = parsed.extensions
+                extensions[id] = normalizedExtensions
                 store.save(repositories)
-                parsed.copy(repository = updated)
+                parsed.copy(repository = updated, extensions = normalizedExtensions)
             } else {
                 val failure = parsed as RepositoryResult.Failure
                 val index = repositories.indexOfFirst { it.id == id }
@@ -94,11 +102,11 @@ class RepositoryManager(context: Context) {
         }
     }
 
-    suspend fun refreshAllRepositories(): Map<String, RepositoryResult> {
-        val results = linkedMapOf<String, RepositoryResult>()
-        repositories.filter { it.enabled }.forEach { repo ->
-            results[repo.id] = refreshRepository(repo.id)
-        }
-        return results
+    suspend fun refreshAllRepositories(): Map<String, RepositoryResult> = withContext(Dispatchers.IO) {
+        repositories.filter { it.enabled }
+            .map { repo ->
+                repo.id to kotlinx.coroutines.async { refreshRepository(repo.id) }
+            }
+            .associate { (id, deferred) -> id to deferred.await() }
     }
 }
