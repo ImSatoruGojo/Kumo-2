@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -50,7 +51,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Search : Screen("search", "Search", Icons.Default.Search)
     data object Library : Screen("library", "Library", Icons.Default.VideoLibrary)
     data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
-    data object Downloads : Screen("downloads", "Downloads", Icons.Default.VideoLibrary)
+    data object Downloads : Screen("downloads", "Downloads", Icons.Default.Download)
     data object Details : Screen("details/{titleId}", "Details", Icons.Default.Home) {
         fun create(titleId: String) = "details/" + titleId
     }
