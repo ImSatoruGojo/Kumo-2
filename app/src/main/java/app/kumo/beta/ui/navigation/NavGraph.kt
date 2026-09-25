@@ -123,6 +123,7 @@ fun KumoNavGraph() {
                 SearchScreen(
                     providerEngine = providerEngine,
                     onTitleClick = { title ->
+                        CatalogStore.put(title)
                         navController.navigate(Screen.Details.create(title.id))
                     }
                 )
