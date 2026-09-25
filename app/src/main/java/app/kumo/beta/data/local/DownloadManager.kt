@@ -2,6 +2,8 @@ package app.kumo.beta.data.local
 
 import android.content.Context
 import android.net.Uri
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.provider.DocumentsContract
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,6 +34,8 @@ class DownloadManager(context: Context) {
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences("kumo_downloads", Context.MODE_PRIVATE)
     private val storage = StorageLocationManager(appContext)
+    private val settings = SettingsPreferencesStore(appContext)
+    private val downloadSlots = java.util.concurrent.Semaphore(settings.get().maxConcurrentDownloads.coerceIn(1, 4), true)
 
     fun getDownloads(): List<DownloadItem> {
         val raw = prefs.getString("custom_dls", null) ?: return emptyList()
@@ -68,8 +72,11 @@ class DownloadManager(context: Context) {
         quality: String,
         sourceUrl: String
     ): Result<DownloadItem> = withContext(Dispatchers.IO) {
+        var currentId: String? = null
         runCatching {
             require(storage.hasValidLocation()) { "Choose a download folder in Settings first" }
+            require(isNetworkAllowed()) { "Downloads are restricted to Wi Fi while Wi Fi only is enabled" }
+            require(downloadSlots.tryAcquire()) { "Download queue is full; try again when an active download finishes" }
             require(sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://")) { "Invalid download URL" }
             require(!sourceUrl.contains(".m3u8", ignoreCase = true)) { "This HLS source needs segmented download support" }
 
@@ -84,6 +91,7 @@ class DownloadManager(context: Context) {
                 downloadedBytes = 0L,
                 status = DownloadStatus.DOWNLOADING
             )
+            currentId = item.id
             upsert(item)
 
             val connection = URL(sourceUrl).openConnection() as HttpURLConnection
@@ -129,9 +137,13 @@ class DownloadManager(context: Context) {
                 fileUri = fileUri.toString()
             ).also { upsert(it) }
         }.onFailure { error ->
-            getDownloads().lastOrNull { it.status == DownloadStatus.DOWNLOADING }?.let {
-                upsert(it.copy(status = DownloadStatus.FAILED, speed = "0 KB/s", eta = "Failed", error = error.message))
+            currentId?.let { id ->
+                getDownloads().firstOrNull { it.id == id }?.let { item ->
+                    upsert(item.copy(status = DownloadStatus.FAILED, speed = "0 KB/s", eta = "Failed", error = error.message))
+                }
             }
+        }.also {
+            if (currentId != null) downloadSlots.release()
         }
     }
 
@@ -167,6 +179,16 @@ class DownloadManager(context: Context) {
             })
         }
         prefs.edit().putString("custom_dls", array.toString()).apply()
+    }
+
+    private fun isNetworkAllowed(): Boolean {
+        val manager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = manager.activeNetwork ?: return false
+        val capabilities = manager.getNetworkCapabilities(network) ?: return false
+        if (!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) return false
+        if (!settings.get().wifiOnlyDownloads) return true
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
     }
 
     private fun sanitize(value: String) =
