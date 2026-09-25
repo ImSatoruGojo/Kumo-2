@@ -101,14 +101,14 @@ fun DetailsScreen(
         }
 
         item {
-            // Play button placeholder
+            // Play the first available episode; individual episode rows remain available below
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .height(48.dp)
                     .background(KumoPurple, RoundedCornerShape(10.dp))
-                    .clickable { /* player later */ },
+                    .clickable { title.episodes.firstOrNull()?.let(onEpisodeClick) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
