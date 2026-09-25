@@ -203,12 +203,28 @@ fun HomeScreen(
 
         }
 
-        Spacer(Modifier.height(20.dp))
+        if (settings.showTopRated && topTitles.isNotEmpty()) {
+            Text("Top Rated", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(topTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+
         if (settings.showNewReleases && newTitles.isNotEmpty()) {
-        Text("Movies", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(movieTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
-        }        }
+            Text("New Releases", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(newTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+
+        if (movieTitles.isNotEmpty()) {
+            Text("Movies", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(movieTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
+            }
+        }
 
     }
 }
