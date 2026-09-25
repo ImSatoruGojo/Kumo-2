@@ -204,6 +204,7 @@ fun KumoNavGraph() {
                 val episode = title?.episodes?.firstOrNull { it.id == episodeId }
                 if (episode != null) {
                     PlayerScreen(
+                        contentId = titleId,
                         episode = episode,
                         sourceResolver = sourceResolver,
                         onBack = { navController.popBackStack() }
