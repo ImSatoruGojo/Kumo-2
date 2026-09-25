@@ -1,11 +1,16 @@
 package app.kumo.beta.data.local
 
 import android.content.Context
-import android.content.SharedPreferences
+import android.net.Uri
+import android.provider.DocumentsContract
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.UUID
 
-enum class DownloadStatus {
-    QUEUED, DOWNLOADING, PAUSED, COMPLETED, FAILED
-}
+enum class DownloadStatus { QUEUED, DOWNLOADING, PAUSED, COMPLETED, FAILED }
 
 data class DownloadItem(
     val id: String,
@@ -18,86 +23,164 @@ data class DownloadItem(
     val downloadedBytes: Long,
     val status: DownloadStatus,
     val speed: String = "0 KB/s",
-    val eta: String = "--"
+    val eta: String = "--",
+    val fileUri: String? = null,
+    val error: String? = null
 )
 
 class DownloadManager(context: Context) {
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("kumo_downloads", Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences("kumo_downloads", Context.MODE_PRIVATE)
+    private val storage = StorageLocationManager(appContext)
 
     fun getDownloads(): List<DownloadItem> {
-        val jsonStr = prefs.getString("custom_dls", null)
-        if (jsonStr.isNullOrEmpty()) return emptyList()
-
-        val list = mutableListOf<DownloadItem>()
-        try {
-            val array = org.json.JSONArray(jsonStr)
-            for (i in 0 until array.length()) {
-                val obj = array.getJSONObject(i)
-                list.add(
-                    DownloadItem(
-                        id = obj.getString("id"),
-                        mediaId = obj.getString("mediaId"),
-                        title = obj.getString("title"),
-                        episodeTitle = obj.getString("episodeTitle"),
-                        coverUrl = obj.optString("coverUrl", ""),
-                        quality = obj.optString("quality", "1080p"),
-                        totalBytes = obj.optLong("totalBytes", 0L),
-                        downloadedBytes = obj.optLong("downloadedBytes", 0L),
-                        status = try { DownloadStatus.valueOf(obj.getString("status")) } catch (e: Exception) { DownloadStatus.QUEUED },
-                        speed = obj.optString("speed", "0 KB/s"),
-                        eta = obj.optString("eta", "--")
-                    )
-                )
+        val raw = prefs.getString("custom_dls", null) ?: return emptyList()
+        return runCatching {
+            val array = JSONArray(raw)
+            buildList {
+                for (i in 0 until array.length()) {
+                    val o = array.getJSONObject(i)
+                    add(DownloadItem(
+                        id = o.getString("id"),
+                        mediaId = o.getString("mediaId"),
+                        title = o.getString("title"),
+                        episodeTitle = o.getString("episodeTitle"),
+                        coverUrl = o.optString("coverUrl", ""),
+                        quality = o.optString("quality", "1080p"),
+                        totalBytes = o.optLong("totalBytes"),
+                        downloadedBytes = o.optLong("downloadedBytes"),
+                        status = runCatching { DownloadStatus.valueOf(o.getString("status")) }.getOrDefault(DownloadStatus.QUEUED),
+                        speed = o.optString("speed", "0 KB/s"),
+                        eta = o.optString("eta", "--"),
+                        fileUri = o.optString("fileUri").takeIf { it.isNotBlank() },
+                        error = o.optString("error").takeIf { it.isNotBlank() }
+                    ))
+                }
             }
-        } catch (e: Exception) {
-            return emptyList()
-        }
-        return list
+        }.getOrDefault(emptyList())
     }
 
-    fun pauseDownload(id: String) {
-        val current = getDownloads().toMutableList()
-        val idx = current.indexOfFirst { it.id == id }
-        if (idx != -1) {
-            current[idx] = current[idx].copy(status = DownloadStatus.PAUSED, speed = "0 KB/s", eta = "Paused")
-            saveDownloads(current)
+    suspend fun downloadDirect(
+        mediaId: String,
+        title: String,
+        episodeTitle: String,
+        coverUrl: String,
+        quality: String,
+        sourceUrl: String
+    ): Result<DownloadItem> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(storage.hasValidLocation()) { "Choose a download folder in Settings first" }
+            require(sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://")) { "Invalid download URL" }
+            require(!sourceUrl.contains(".m3u8", ignoreCase = true)) { "This HLS source needs segmented download support" }
+
+            val item = DownloadItem(
+                id = UUID.randomUUID().toString(),
+                mediaId = mediaId,
+                title = title,
+                episodeTitle = episodeTitle,
+                coverUrl = coverUrl,
+                quality = quality,
+                totalBytes = 0L,
+                downloadedBytes = 0L,
+                status = DownloadStatus.DOWNLOADING
+            )
+            upsert(item)
+
+            val connection = URL(sourceUrl).openConnection() as HttpURLConnection
+            connection.connectTimeout = 15000
+            connection.readTimeout = 30000
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("User-Agent", "Kumo/0.1")
+            require(connection.responseCode in 200..299) { "Download returned HTTP " + connection.responseCode }
+
+            val total = connection.contentLengthLong.coerceAtLeast(0L)
+            val tree = storage.getTreeUri() ?: error("Download folder is no longer available")
+            val name = sanitize(title + " - " + episodeTitle) + extensionFor(sourceUrl)
+            val fileUri = DocumentsContract.createDocument(appContext.contentResolver, tree, mimeFor(name), name)
+                ?: error("Unable to create the download file")
+
+            var downloaded = 0L
+            try {
+                connection.inputStream.use { input ->
+                    appContext.contentResolver.openOutputStream(fileUri, "w")?.use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count <= 0) break
+                            output.write(buffer, 0, count)
+                            downloaded += count
+                            upsert(item.copy(totalBytes = total, downloadedBytes = downloaded, status = DownloadStatus.DOWNLOADING))
+                        }
+                    } ?: error("Unable to open the selected storage folder")
+                }
+            } catch (e: Exception) {
+                runCatching { DocumentsContract.deleteDocument(appContext.contentResolver, fileUri) }
+                throw e
+            } finally {
+                connection.disconnect()
+            }
+
+            item.copy(
+                totalBytes = maxOf(total, downloaded),
+                downloadedBytes = downloaded,
+                status = DownloadStatus.COMPLETED,
+                speed = "Complete",
+                eta = "Done",
+                fileUri = fileUri.toString()
+            ).also { upsert(it) }
+        }.onFailure { error ->
+            getDownloads().lastOrNull { it.status == DownloadStatus.DOWNLOADING }?.let {
+                upsert(it.copy(status = DownloadStatus.FAILED, speed = "0 KB/s", eta = "Failed", error = error.message))
+            }
         }
     }
 
-    fun resumeDownload(id: String) {
-        val current = getDownloads().toMutableList()
-        val idx = current.indexOfFirst { it.id == id }
-        if (idx != -1) {
-            current[idx] = current[idx].copy(status = DownloadStatus.DOWNLOADING, speed = "2.8 MB/s", eta = "Downloading")
-            saveDownloads(current)
-        }
-    }
+    fun pauseDownload(id: String) = update(id) { it.copy(status = DownloadStatus.PAUSED, speed = "0 KB/s", eta = "Paused") }
+
+    fun resumeDownload(id: String) = update(id) { it.copy(status = DownloadStatus.DOWNLOADING, speed = "Downloading", eta = "Active") }
 
     fun deleteDownload(id: String) {
         val current = getDownloads().toMutableList()
+        current.firstOrNull { it.id == id }?.fileUri?.let { runCatching {
+            DocumentsContract.deleteDocument(appContext.contentResolver, Uri.parse(it))
+        } }
         current.removeAll { it.id == id }
         saveDownloads(current)
     }
 
-    private fun saveDownloads(list: List<DownloadItem>) {
-        val array = org.json.JSONArray()
-        list.forEach { dl ->
-            val obj = org.json.JSONObject().apply {
-                put("id", dl.id)
-                put("mediaId", dl.mediaId)
-                put("title", dl.title)
-                put("episodeTitle", dl.episodeTitle)
-                put("coverUrl", dl.coverUrl)
-                put("quality", dl.quality)
-                put("totalBytes", dl.totalBytes)
-                put("downloadedBytes", dl.downloadedBytes)
-                put("status", dl.status.name)
-                put("speed", dl.speed)
-                put("eta", dl.eta)
-            }
-            array.put(obj)
+    private fun update(id: String, transform: (DownloadItem) -> DownloadItem) {
+        saveDownloads(getDownloads().map { if (it.id == id) transform(it) else it })
+    }
+
+    private fun upsert(item: DownloadItem) {
+        saveDownloads(getDownloads().filterNot { it.id == item.id } + item)
+    }
+
+    private fun saveDownloads(items: List<DownloadItem>) {
+        val array = JSONArray()
+        items.forEach { d ->
+            array.put(org.json.JSONObject().apply {
+                put("id", d.id); put("mediaId", d.mediaId); put("title", d.title); put("episodeTitle", d.episodeTitle)
+                put("coverUrl", d.coverUrl); put("quality", d.quality); put("totalBytes", d.totalBytes)
+                put("downloadedBytes", d.downloadedBytes); put("status", d.status.name); put("speed", d.speed); put("eta", d.eta)
+                put("fileUri", d.fileUri ?: ""); put("error", d.error ?: "")
+            })
         }
         prefs.edit().putString("custom_dls", array.toString()).apply()
+    }
+
+    private fun sanitize(value: String) =
+        value.replace(Regex("[\\/:*?\"<>|]"), "_").trim().take(120).ifBlank { "Kumo Download" }
+
+    private fun extensionFor(url: String) = when {
+        url.contains(".webm", true) -> ".webm"
+        url.contains(".mkv", true) -> ".mkv"
+        else -> ".mp4"
+    }
+
+    private fun mimeFor(name: String) = when {
+        name.endsWith(".webm", true) -> "video/webm"
+        name.endsWith(".mkv", true) -> "video/x-matroska"
+        else -> "video/mp4"
     }
 }
