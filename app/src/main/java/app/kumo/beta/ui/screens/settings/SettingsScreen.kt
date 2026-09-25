@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -144,7 +143,7 @@ fun SettingsScreen() {
         }
 
         item {
-            Text("Repositories", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+            Text("Repositories", color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
             OutlinedTextField(
                 value = repositoryUrl,
                 onValueChange = { repositoryUrl = it },
@@ -210,7 +209,7 @@ fun SettingsScreen() {
 
         if (extensions.isNotEmpty()) {
             item {
-                Text("Available extensions", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                Text("Available extensions", color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
                 Text("Install, enable, disable or remove installed extensions", color = KumoTextSecondary, fontSize = 12.sp)
             }
             items(extensions, key = { it.id }) { extension ->
@@ -314,7 +313,7 @@ fun SettingsScreen() {
 @Composable
 private fun RepositoryRow(repository: Repository, onRefresh: () -> Unit, onRemove: () -> Unit) {
     Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
-        Text(repository.name, color = Color.White, fontWeight = FontWeight.SemiBold)
+        Text(repository.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
         Text(repository.url, color = KumoTextSecondary, fontSize = 12.sp, maxLines = 2)
         repository.lastRefreshStatus?.let { Text("Status: " + it, color = KumoTextSecondary, fontSize = 12.sp) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -335,7 +334,7 @@ private fun ExtensionRow(
     val scope = rememberCoroutineScope()
 
     Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
-        Text(extension.name, color = Color.White, fontWeight = FontWeight.SemiBold)
+        Text(extension.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
         Text(extension.type.name, color = KumoTextSecondary, fontSize = 12.sp)
         extension.version?.let { Text("Version " + it, color = KumoTextSecondary, fontSize = 12.sp) }
 
@@ -376,7 +375,7 @@ private fun ExtensionRow(
 private fun ChoiceItem(label: String, value: String, options: List<String>, onSelected: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = Color.White, fontSize = 15.sp)
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
         TextButton(onClick = { open = true }) { Text(value, color = KumoPurple) }
     }
     if (open) {
@@ -393,7 +392,7 @@ private fun ChoiceItem(label: String, value: String, options: List<String>, onSe
 private fun SwitchItem(label: String, description: String, checked: Boolean, onChanged: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(label, color = Color.White, fontSize = 15.sp)
+            Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
             Text(description, color = KumoTextSecondary, fontSize = 12.sp)
         }
         Switch(checked = checked, onCheckedChange = onChanged)
@@ -409,7 +408,7 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
 @Composable
 private fun SettingsItem(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = Color.White, fontSize = 15.sp)
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
         Text(value, color = KumoTextSecondary, fontSize = 14.sp, maxLines = 1)
     }
 }
