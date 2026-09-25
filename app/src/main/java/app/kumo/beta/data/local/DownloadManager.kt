@@ -76,9 +76,9 @@ class DownloadManager(context: Context) {
         runCatching {
             require(storage.hasValidLocation()) { "Choose a download folder in Settings first" }
             require(isNetworkAllowed()) { "Downloads are restricted to Wi Fi while Wi Fi only is enabled" }
-            require(downloadSlots.tryAcquire()) { "Download queue is full; try again when an active download finishes" }
             require(sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://")) { "Invalid download URL" }
             require(!sourceUrl.contains(".m3u8", ignoreCase = true)) { "This HLS source needs segmented download support" }
+            require(downloadSlots.tryAcquire()) { "Download queue is full; try again when an active download finishes" }
 
             val item = DownloadItem(
                 id = UUID.randomUUID().toString(),
