@@ -9,6 +9,8 @@ import java.net.URL
 import java.security.MessageDigest
 
 class ExtensionInstaller(context: Context) {
+    private val appContext = context.applicationContext
+    private val store = ExtensionStore(appContext)
     private val root = File(context.filesDir, "extensions")
 
     suspend fun install(extension: ExtensionInfo): Result<File> = withContext(Dispatchers.IO) {
@@ -47,6 +49,16 @@ class ExtensionInstaller(context: Context) {
             if (finalFile.exists()) finalFile.delete()
             check(temp.renameTo(finalFile)) { "Unable to install extension file" }
 
+            store.upsert(
+                InstalledExtension(
+                    id = extension.id,
+                    packageName = extension.packageName,
+                    filePath = finalFile.absolutePath,
+                    version = extension.version,
+                    versionCode = extension.versionCode,
+                    enabled = true
+                )
+            )
             finalFile
         }.onFailure {
             File(root, extension.type.name.lowercase())
@@ -54,6 +66,15 @@ class ExtensionInstaller(context: Context) {
                 .filter { it.name.endsWith(".part") }
                 .forEach { it.delete() }
         }
+    }
+
+    fun installed(): List<InstalledExtension> = store.load()
+
+    fun setEnabled(id: String, enabled: Boolean) = store.setEnabled(id, enabled)
+
+    fun removeInstalled(id: String) {
+        store.load().firstOrNull { it.id == id }?.let { File(it.filePath).delete() }
+        store.remove(id)
     }
 
     private fun sha256(file: File): String {
