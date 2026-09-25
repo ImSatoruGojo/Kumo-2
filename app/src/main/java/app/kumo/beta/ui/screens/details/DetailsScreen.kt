@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.data.LibraryStore
+import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.data.local.LibraryCategory
 import app.kumo.beta.data.local.LibraryManager
 import app.kumo.beta.model.Progress
@@ -53,6 +54,8 @@ fun DetailsScreen(
     var isFavorite by remember { mutableStateOf(libManager.isFavorite(title.id)) }
     var showCategoryMenu by remember { mutableStateOf(false) }
     var isDescriptionExpanded by remember { mutableStateOf(false) }
+    var pendingDownload by remember { mutableStateOf<app.kumo.beta.model.Episode?>(null) }
+    val settings = remember { SettingsPreferencesStore(context).get() }
 
     val scrollState = rememberScrollState()
 
@@ -413,7 +416,7 @@ fun DetailsScreen(
                                 )
                                 Text(text = ep.durationMs?.let { formatDuration(it) } ?: "Duration unavailable", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    IconButton(onClick = { onDownloadEpisode(ep) }) {
+                                    IconButton(onClick = { if (settings.confirmDownloads) pendingDownload = ep else onDownloadEpisode(ep) }) {
                                         Icon(Icons.Default.Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
                                     }
                                 }
@@ -521,4 +524,16 @@ private fun formatDuration(durationMs: Long): String {
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
     return if (hours > 0) hours.toString() + "h " + minutes + "m" else minutes.toString() + "m"
+
+    pendingDownload?.let { episode ->
+        AlertDialog(
+            onDismissRequest = { pendingDownload = null },
+            title = { Text("Download episode?") },
+            text = { Text("Save ${episode.title ?: "Episode " + episode.number} to your selected download folder") },
+            confirmButton = {
+                TextButton(onClick = { pendingDownload = null; onDownloadEpisode(episode) }) { Text("Download") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDownload = null }) { Text("Cancel") } }
+        )
+    }
 }
