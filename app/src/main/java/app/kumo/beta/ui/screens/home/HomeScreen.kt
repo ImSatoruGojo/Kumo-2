@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -47,6 +48,18 @@ fun HomeScreen(
     val allTitles = remember { DemoData.allTitles }
     val featuredTitle = remember { allTitles.firstOrNull() }
     val continueWatchingList = remember { libraryStore.getProgress() }
+    val popularAnimeState = rememberLazyListState()
+
+    LaunchedEffect(popularAnimeState) {
+        while (isActive) {
+            delay(3500)
+            val count = allTitles.count { it.type == MediaType.ANIME }
+            if (count > 1) {
+                val next = (popularAnimeState.firstVisibleItemIndex + 1) % count
+                popularAnimeState.animateScrollToItem(next)
+            }
+        }
+    }
 
     fun openTitle(title: Title) {
         onNavigateToDetails(title.id)
@@ -134,10 +147,11 @@ fun HomeScreen(
 
         Text("Popular Anime", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         LazyRow(
+            state = popularAnimeState,
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(allTitles.filter { it.type == MediaType.ANIME }) { title ->
+            items(allTitles.filter { it.type == MediaType.ANIME }, key = { it.id }) { title ->
                 TitleCard(title = title, onClick = { openTitle(title) })
             }
         }
