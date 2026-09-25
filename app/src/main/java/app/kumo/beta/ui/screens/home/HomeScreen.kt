@@ -45,6 +45,7 @@ fun HomeScreen(
     onNavigateToSearchWithFilter: () -> Unit = {},
     onTitleClick: (Title) -> Unit = {},
     onVoiceSearch: () -> Unit = {},
+    providerEngine: ProviderEngine? = null
 ) {
     val context = LocalContext.current
     val libraryStore = remember { LibraryStore(context) }
