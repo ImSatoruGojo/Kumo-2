@@ -34,9 +34,10 @@ import kotlinx.coroutines.delay
 fun SearchScreen(
     providerEngine: ProviderEngine,
     onTitleClick: (Title) -> Unit,
-    openFiltersInitially: Boolean = false
+    openFiltersInitially: Boolean = false,
+    initialQuery: String = ""
 ) {
-    var query by remember { mutableStateOf("") }
+    var query by remember { mutableStateOf(initialQuery) }
     var results by remember { mutableStateOf(DemoData.allTitles) }
     var selectedType by remember { mutableStateOf<MediaType?>(null) }
     var selectedGenre by remember { mutableStateOf<String?>(null) }
