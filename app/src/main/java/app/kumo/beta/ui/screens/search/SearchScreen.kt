@@ -19,7 +19,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.kumo.beta.data.DemoData
+import app.kumo.beta.data.CatalogStore
+import app.kumo.beta.provider.ProviderEngine
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
 import app.kumo.beta.ui.components.PosterCard
@@ -43,7 +44,7 @@ fun SearchScreen(
             return@LaunchedEffect
         }
         delay(250)
-        results = DemoData.search(query)
+        results = providerEngine.search(query).map { it.title }.also { CatalogStore.putAll(it) }
     }
 
     Column(
