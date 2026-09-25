@@ -24,6 +24,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.kumo.beta.data.CatalogStore
+import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.extension.ExtensionManager
 import app.kumo.beta.provider.JikanProvider
 import app.kumo.beta.provider.ProviderEngine
@@ -56,6 +57,7 @@ val bottomScreens = listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Se
 fun KumoNavGraph() {
     val context = LocalContext.current
     val navController = rememberNavController()
+    val settings = remember { SettingsPreferencesStore(context).get() }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -125,7 +127,7 @@ fun KumoNavGraph() {
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = if (settings.startupPage == "Library") Screen.Library.route else Screen.Home.route,
             modifier = Modifier.padding(padding)
         ) {
             composable(Screen.Home.route) {
