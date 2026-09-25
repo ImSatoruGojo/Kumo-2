@@ -30,7 +30,8 @@ import app.kumo.beta.ui.theme.KumoTextSecondary
 @Composable
 fun DetailsScreen(
     title: Title,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEpisodeClick: (app.kumo.beta.model.Episode) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -133,7 +134,8 @@ fun DetailsScreen(
             items(title.episodes, key = { it.id }) { ep ->
                 EpisodeRow(
                     number = ep.number,
-                    title = ep.title ?: "Episode ${ep.number}"
+                    title = ep.title ?: "Episode ${ep.number}",
+                    onClick = { onEpisodeClick(ep) }
                 )
             }
         }
@@ -151,7 +153,8 @@ fun DetailsScreen(
             items(title.chapters, key = { it.id }) { ch ->
                 EpisodeRow(
                     number = ch.number,
-                    title = ch.title ?: "Chapter ${ch.number}"
+                    title = ch.title ?: "Chapter ${ch.number}",
+                    onClick = {}
                 )
             }
         }
@@ -161,13 +164,17 @@ fun DetailsScreen(
 }
 
 @Composable
-private fun EpisodeRow(number: Int, title: String) {
+private fun EpisodeRow(
+    number: Int,
+    title: String,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .background(KumoCard, RoundedCornerShape(10.dp))
-            .clickable { }
+            .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
