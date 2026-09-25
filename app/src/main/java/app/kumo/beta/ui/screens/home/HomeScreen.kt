@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.data.DemoData
 import app.kumo.beta.data.LibraryStore
+import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
 import app.kumo.beta.ui.components.ContinueWatchingCard
@@ -47,6 +48,8 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val libraryStore = remember { LibraryStore(context) }
+    val settingsStore = remember { SettingsPreferencesStore(context) }
+    val settings = settingsStore.get()
     val allTitles = remember { DemoData.allTitles }
     val featuredTitle = remember { allTitles.firstOrNull() }
     val continueWatchingList = remember { libraryStore.getProgress() }
@@ -160,7 +163,7 @@ fun HomeScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        if (continueWatchingList.isNotEmpty()) {
+        if (settings.showContinueWatching && settings.continueWatching && continueWatchingList.isNotEmpty()) {
             Text("Continue Watching", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(continueWatchingList) { prog ->
@@ -174,15 +177,20 @@ fun HomeScreen(
             Spacer(Modifier.height(20.dp))
         }
 
+        if (settings.showPopular) {
         Text("Popular Right Now", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(allTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
         }
 
+        }
+
         Spacer(Modifier.height(20.dp))
+        if (settings.showNewReleases) {
         Text("Movies", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(allTitles.filter { it.type == MediaType.MOVIE }) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
-        }
+        }        }
+
     }
 }
