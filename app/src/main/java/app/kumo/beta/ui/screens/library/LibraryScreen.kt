@@ -109,22 +109,17 @@ fun LibraryScreen(
             }
         }
 
-        // UNREAD / WATCH PROGRESS OVERVIEW BADGE
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Tracking Status: Synced with AniList & MAL",
+                text = categories[selectedTab].displayName + " Collection",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "${categories[selectedTab].displayName} Collection",
+                text = libManager.getTitlesInCategory(categories[selectedTab]).size.toString() + " titles",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
