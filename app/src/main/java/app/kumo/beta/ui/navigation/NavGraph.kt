@@ -130,18 +130,28 @@ fun KumoNavGraph() {
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
+                    onNavigateToSearch = { navController.navigate(Screen.Search.route) },
+                    onNavigateToSearchWithFilter = { navController.navigate(Screen.Search.route) },
+                    onVoiceSearch = {
+                        homeVoiceLauncher.launch(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                        })
+                    },
                     onTitleClick = { title ->
                         navController.navigate(Screen.Details.create(title.id))
                     }
                 )
             }
             composable(Screen.Search.route) {
+                val initialQuery = navController.currentBackStackEntry?.savedStateHandle?.get<String>("searchQuery").orEmpty()
+                navController.currentBackStackEntry?.savedStateHandle?.remove<String>("searchQuery")
                 SearchScreen(
                     providerEngine = providerEngine,
                     onTitleClick = { title ->
                         CatalogStore.put(title)
                         navController.navigate(Screen.Details.create(title.id))
-                    }
+                    },
+                    initialQuery = initialQuery
                 )
             }
             composable(Screen.Library.route) {
