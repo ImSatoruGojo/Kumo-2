@@ -52,7 +52,7 @@ fun HomeScreen(
     val settings = settingsStore.get()
     val allTitles = remember { DemoData.allTitles }
     val featuredTitle = remember { allTitles.firstOrNull() }
-    val continueWatchingList = remember { libraryStore.getProgress() }
+    val continueWatchingList = remember { libraryStore.getContinueWatching() }
     val popularAnimeState = rememberLazyListState()
 
     LaunchedEffect(popularAnimeState) {
