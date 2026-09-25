@@ -7,6 +7,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class ProviderEngine(private val registry: ProviderRegistry) {
     suspend fun search(query: String, type: MediaType? = null): List<KumoSearchResult> = withContext(Dispatchers.IO) {
@@ -15,7 +16,7 @@ class ProviderEngine(private val registry: ProviderRegistry) {
                 .filter { type == null || type in it.supportedTypes }
                 .map { provider ->
                     async {
-                        runCatching { provider.search(query) }.getOrDefault(emptyList())
+                        withTimeoutOrNull(12_000L) { provider.search(query) }.orEmpty()
                     }
                 }
                 .awaitAll()
@@ -41,8 +42,8 @@ class ProviderEngine(private val registry: ProviderRegistry) {
         val loadedTitles = coroutineScope {
             providers.map { provider ->
                 async {
-                    val loaded = runCatching { provider.load(title) }.getOrNull() ?: title
-                    val episodes = runCatching { provider.getEpisodes(loaded) }.getOrDefault(emptyList())
+                    val loaded = withTimeoutOrNull(12_000L) { provider.load(title) } ?: title
+                    val episodes = withTimeoutOrNull(12_000L) { provider.getEpisodes(loaded) }.orEmpty()
                     loaded to episodes
                 }
             }.awaitAll()
