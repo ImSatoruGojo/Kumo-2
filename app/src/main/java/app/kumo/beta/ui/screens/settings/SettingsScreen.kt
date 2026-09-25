@@ -58,7 +58,7 @@ fun SettingsScreen() {
 
     fun refreshUi() {
         repositories = repositoryManager.getRepositories()
-        extensions = repositoryManager.getAllExtensions().map { extension ->
+        extensions = repositoryManager.getAllExtensions().filter { settings.showAdultContent || !it.nsfw }.map { extension ->
             val current = extensionInstaller.installed().firstOrNull { it.id == extension.id }
             extension.copy(
                 installed = current != null,
