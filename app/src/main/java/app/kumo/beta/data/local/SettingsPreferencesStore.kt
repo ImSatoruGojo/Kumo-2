@@ -133,5 +133,13 @@ class SettingsPreferencesStore(context: android.content.Context) {
     fun setReadingMode(v: String) = prefs.edit().putString("reading_mode", v).apply()
     fun setReadingDirection(v: String) = prefs.edit().putString("reading_direction", v).apply()
 
+    fun registerListener(listener: android.content.SharedPreferences.OnSharedPreferenceChangeListener) {
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+    }
+
+    fun unregisterListener(listener: android.content.SharedPreferences.OnSharedPreferenceChangeListener) {
+        prefs.unregisterOnSharedPreferenceChangeListener(listener)
+    }
+
     fun resetAll() = prefs.edit().clear().apply()
 }
