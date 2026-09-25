@@ -3,34 +3,67 @@ package app.kumo.beta.data
 import app.kumo.beta.model.Chapter
 import app.kumo.beta.model.Episode
 import app.kumo.beta.model.MediaType
+import app.kumo.beta.model.Season
 import app.kumo.beta.model.Title
 
 object DemoData {
 
     private fun eps(count: Int, prefix: String = "Episode"): List<Episode> =
-        (1..count).map { Episode(id = "$prefix-$it", number = it, title = "$prefix $it") }
+        (1..count).map {
+            Episode(
+                id = "$prefix-$it",
+                number = it,
+                title = "$prefix $it",
+                description = "Full HD episode stream with multi-sub & dub audio tracks.",
+                thumbnailUrl = "https://picsum.photos/300/180?random=$it"
+            )
+        }
 
     private fun chs(count: Int): List<Chapter> =
         (1..count).map { Chapter(id = "ch-$it", number = it, title = "Chapter $it") }
 
     val allTitles: List<Title> = listOf(
-        // Anime
+        // Anime with Seasons
         Title(
             id = "kumo:title:skybound-hero",
             title = "Skybound Hero",
+            englishTitle = "Skybound Hero",
+            japaneseTitle = "天空の勇者",
+            romanizedTitle = "Tenkuu no Yuusha",
+            altTitles = listOf("Tenkuu no Yuusha", "Skybound Legend"),
             type = MediaType.ANIME,
             description = "A young warrior discovers an ancient power that can reshape the skies. Action-packed journey through floating kingdoms.",
             genres = listOf("Action", "Fantasy", "Adventure"),
             year = 2024,
-            episodes = eps(12)
+            releaseDate = "Jan 12, 2024",
+            rating = 4.8f,
+            ratingCount = 14250,
+            contentAgeRating = "TV-14",
+            runtimeMinutes = 24,
+            status = "Ongoing",
+            studio = "Kumo Animation",
+            director = "Satoru Gojo",
+            cast = listOf("Hero A", "Heroine B", "Rival C"),
+            seasons = listOf(
+                Season(seasonNumber = 1, name = "Season 1: Skybound Origin", status = "Completed", episodes = eps(12, "S1 Ep")),
+                Season(seasonNumber = 2, name = "Season 2: Floating Realm War", status = "Currently Watching", episodes = eps(12, "S2 Ep"))
+            ),
+            episodes = eps(12, "S2 Ep")
         ),
         Title(
             id = "kumo:title:magic-academy",
             title = "Magic Academy",
+            altTitles = listOf("Mahou Gakuen", "Sorcery High"),
             type = MediaType.ANIME,
             description = "Students at the elite Magic Academy face trials that test more than just their spells.",
             genres = listOf("Fantasy", "Adventure", "School"),
             year = 2023,
+            rating = 4.6f,
+            status = "Completed",
+            seasons = listOf(
+                Season(seasonNumber = 1, name = "Season 1", status = "Completed", episodes = eps(12, "S1 Ep")),
+                Season(seasonNumber = 2, name = "Season 2", status = "Completed", episodes = eps(12, "S2 Ep"))
+            ),
             episodes = eps(24)
         ),
         Title(
@@ -133,10 +166,12 @@ object DemoData {
 
     fun byType(type: MediaType): List<Title> = allTitles.filter { it.type == type }
 
+    private val unifiedRepo = app.kumo.beta.data.source.UnifiedRepository()
+
     fun search(query: String): List<Title> {
         if (query.isBlank()) return emptyList()
         val q = query.trim().lowercase()
-        return allTitles
+        val rawMatches = allTitles
             .map { title ->
                 val score = when {
                     title.title.lowercase() == q -> 100
@@ -150,6 +185,11 @@ object DemoData {
             .filter { it.second > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
+
+        // De-duplicate and merge matching entries by normalized title string
+        return rawMatches.distinctBy { title ->
+            title.title.lowercase().replace(Regex("[^a-z0-9]"), "").trim()
+        }
     }
 
     fun getById(id: String): Title? = allTitles.find { it.id == id }
