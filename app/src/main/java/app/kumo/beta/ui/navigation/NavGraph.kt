@@ -41,7 +41,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Library : Screen("library", "Library", Icons.Default.VideoLibrary)
     data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     data object Details : Screen("details/{titleId}", "Details", Icons.Default.Home) {
-        fun create(titleId: String) = "details/$" + titleId
+        fun create(titleId: String) = "details/" + titleId
     }
 }
 
