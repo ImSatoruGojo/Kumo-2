@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.kumo.beta.data.local.ContinueWatchingManager
+import app.kumo.beta.data.LibraryStore
 import app.kumo.beta.data.local.LibraryCategory
 import app.kumo.beta.data.local.LibraryManager
 import app.kumo.beta.model.Progress
@@ -46,7 +46,7 @@ fun DetailsScreen(
 ) {
     val context = LocalContext.current
     val libManager = remember { LibraryManager(context) }
-    val cwManager = remember { ContinueWatchingManager(context) }
+    val libraryStore = remember { LibraryStore(context) }
 
     var selectedCategory by remember { mutableStateOf(libManager.getCategoryForTitle(title.id)) }
     var isFavorite by remember { mutableStateOf(libManager.isFavorite(title.id)) }
@@ -400,7 +400,7 @@ fun DetailsScreen(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                             .clickable {
-                                cwManager.saveProgress(
+                                libraryStore.saveProgress(
                                     Progress(
                                         contentId = title.id,
                                         episodeId = ep.id,
