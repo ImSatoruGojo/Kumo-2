@@ -18,7 +18,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import app.kumo.beta.data.DemoData
+import app.kumo.beta.data.CatalogStore
+import app.kumo.beta.provider.JikanProvider
+import app.kumo.beta.provider.ProviderEngine
+import app.kumo.beta.provider.ProviderRegistry
 import app.kumo.beta.ui.screens.details.DetailsScreen
 import app.kumo.beta.ui.screens.home.HomeScreen
 import app.kumo.beta.ui.screens.library.LibraryScreen
@@ -47,7 +50,7 @@ fun KumoNavGraph() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val showBottomBar = bottomScreens.any { it.route == currentRoute }
+    val showBottomBar = bottomScreens.any { it.route == currentRoute }\n    val providerRegistry = remember { ProviderRegistry().apply { registerProvider(JikanProvider()) } }\n    val providerEngine = remember { ProviderEngine(providerRegistry) }
 
     Scaffold(
         containerColor = KumoBlack,
@@ -118,7 +121,7 @@ fun KumoNavGraph() {
                 arguments = listOf(navArgument("titleId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val titleId = backStackEntry.arguments?.getString("titleId") ?: return@composable
-                val title = DemoData.getById(titleId)
+                val title = CatalogStore.get(titleId)
                 if (title != null) {
                     DetailsScreen(
                         title = title,
