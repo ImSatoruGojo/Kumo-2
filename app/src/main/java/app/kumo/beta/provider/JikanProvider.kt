@@ -14,6 +14,19 @@ class JikanProvider : KumoProvider {
     override val language: String? = "en"
     override val supportedTypes: Set<MediaType> = setOf(MediaType.ANIME)
 
+    override suspend fun getCatalog(section: String): List<KumoSearchResult> {
+        val endpoint = when (section.lowercase()) {
+            "popular", "trending" -> "https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=20"
+            "top", "top_rated" -> "https://api.jikan.moe/v4/top/anime?limit=20"
+            "new", "new_releases" -> "https://api.jikan.moe/v4/anime?order_by=aired&sort=desc&limit=20"
+            else -> return emptyList()
+        }
+        val array = request(endpoint).optJSONArray("data") ?: return emptyList()
+        return (0 until array.length()).mapNotNull { i ->
+            array.optJSONObject(i)?.toTitle()?.let { KumoSearchResult(it, id) }
+        }
+    }
+
     override suspend fun search(query: String): List<KumoSearchResult> =
         request("https://api.jikan.moe/v4/anime?q=" + URLEncoder.encode(query, "UTF-8") + "&sfw=true&limit=20")
             .optJSONArray("data")?.let { array ->
