@@ -17,7 +17,7 @@ val KumoCard = Color(0xFF1A1A1A)
 
 // Text Colors
 val KumoText = Color(0xFFFFFFFF)
-val KumoTextSecondary = Color(0xFFAAAAAA)
+val KumoTextSecondary = Color(0xFFAAAAAA)\nval KumoPurple = Color(0xFF7C4DFF)
 
 fun parseColorHex(hex: String): Long {
     val cleanHex = hex.trim().removePrefix("#").uppercase()
