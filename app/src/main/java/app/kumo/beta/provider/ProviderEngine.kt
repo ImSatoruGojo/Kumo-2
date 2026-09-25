@@ -2,38 +2,62 @@ package app.kumo.beta.provider
 
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 
 class ProviderEngine(private val registry: ProviderRegistry) {
-    suspend fun search(query:String,type:MediaType?=null):List<KumoSearchResult> = coroutineScope {
-        registry.getEnabledProviders().filter{type==null || type in it.supportedTypes}
-            .map{p->async{runCatching{p.search(query)}.getOrDefault(emptyList())}}.awaitAll().flatten().let(::mergeTitles)
-    }
-    suspend fun load(title: Title): Title {
-        for (p in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
-            runCatching { p.load(title) }
-                .getOrNull()
-                ?.takeIf { it.title.isNotBlank() }
-                ?.let { return it }
+    suspend fun search(query: String, type: MediaType? = null): List<KumoSearchResult> = withContext(Dispatchers.IO) {
+        coroutineScope {
+            registry.getEnabledProviders()
+                .filter { type == null || type in it.supportedTypes }
+                .map { provider ->
+                    async {
+                        runCatching { provider.search(query) }.getOrDefault(emptyList())
+                    }
+                }
+                .awaitAll()
+                .flatten()
+                .let(::mergeTitles)
         }
-        return title
     }
 
-    suspend fun episodes(title: Title): Title {
-        for (p in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
-            val loaded = runCatching { p.load(title) }.getOrNull() ?: title
-            val episodes = runCatching { p.getEpisodes(loaded) }.getOrDefault(emptyList())
-            if (episodes.isNotEmpty()) return loaded.copy(episodes = episodes)
+    suspend fun load(title: Title): Title = withContext(Dispatchers.IO) {
+        for (provider in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
+            runCatching { provider.load(title) }
+                .getOrNull()
+                ?.takeIf { it.title.isNotBlank() }
+                ?.let { return@withContext it }
         }
-        return title
+        title
     }
-    private fun mergeTitles(results:List<KumoSearchResult>):List<KumoSearchResult>{
-        val merged=LinkedHashMap<String,KumoSearchResult>()
-        results.forEach{r->val k=normalize(r.title.title);val old=merged[k];if(old==null||score(r.title)>score(old.title))merged[k]=r}
+
+    suspend fun episodes(title: Title): Title = withContext(Dispatchers.IO) {
+        for (provider in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
+            val loaded = runCatching { provider.load(title) }.getOrNull() ?: title
+            val episodes = runCatching { provider.getEpisodes(loaded) }.getOrDefault(emptyList())
+            if (episodes.isNotEmpty()) return@withContext loaded.copy(episodes = episodes)
+        }
+        title
+    }
+
+    private fun mergeTitles(results: List<KumoSearchResult>): List<KumoSearchResult> {
+        val merged = LinkedHashMap<String, KumoSearchResult>()
+        results.forEach { result ->
+            val key = normalize(result.title.title)
+            val old = merged[key]
+            if (old == null || score(result.title) > score(old.title)) {
+                merged[key] = result
+            }
+        }
         return merged.values.toList()
     }
-    private fun normalize(v:String)=v.lowercase().replace(Regex("[^a-z0-9]+")," ").trim()
-    private fun score(t:Title)=(t.rating?.times(10f)?.toInt()?:0)+(if(t.posterUrl!=null)5 else 0)
+
+    private fun normalize(value: String) =
+        value.lowercase().replace(Regex("[^a-z0-9]+"), " ").trim()
+
+    private fun score(title: Title) =
+        (title.rating?.times(10f)?.toInt() ?: 0) + if (title.posterUrl != null) 5 else 0
 }
