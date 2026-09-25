@@ -27,11 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.kumo.beta.data.DemoData
 import app.kumo.beta.data.LibraryStore
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
+import app.kumo.beta.provider.ProviderEngine
 import app.kumo.beta.ui.components.ContinueWatchingCard
 import app.kumo.beta.ui.components.TitleCard
 import coil.compose.AsyncImage
@@ -44,15 +44,21 @@ fun HomeScreen(
     onNavigateToSearch: () -> Unit = {},
     onNavigateToSearchWithFilter: () -> Unit = {},
     onTitleClick: (Title) -> Unit = {},
-    onVoiceSearch: () -> Unit = {}
+    onVoiceSearch: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val libraryStore = remember { LibraryStore(context) }
     val settingsStore = remember { SettingsPreferencesStore(context) }
     val settings = settingsStore.get()
-    val allTitles = remember { DemoData.allTitles }
-    val featuredTitle = remember { allTitles.firstOrNull() }
-    val continueWatchingList = remember { libraryStore.getContinueWatching() }
+    var allTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    var featuredTitle by remember { mutableStateOf<Title?>(null) }
+    LaunchedEffect(providerEngine) {
+        if (providerEngine != null) {
+            val popular = providerEngine.catalog("popular", MediaType.ANIME).map { it.title }
+            allTitles = popular
+            featuredTitle = popular.firstOrNull()
+        }
+    }
     val popularAnimeState = rememberLazyListState()
 
     LaunchedEffect(popularAnimeState) {
@@ -167,7 +173,7 @@ fun HomeScreen(
             Text("Continue Watching", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(continueWatchingList) { prog ->
-                    DemoData.getById(prog.contentId)?.let { item ->
+                    allTitles.firstOrNull { it.id == prog.contentId }?.let { item ->
                         val epNum = prog.episodeId.substringAfterLast("-").toIntOrNull() ?: 1
                         val percent = if (prog.durationMs > 0) prog.positionMs.toFloat() / prog.durationMs else 0.5f
                         ContinueWatchingCard(item, epNum, percent) { openTitle(item) }
