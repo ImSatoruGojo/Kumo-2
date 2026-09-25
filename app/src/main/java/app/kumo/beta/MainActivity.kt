@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
             KumoTheme(themeMode = themeMode, accentOption = accent) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = KumoBlack
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.background
                 ) {
                     KumoNavGraph()
                 }
