@@ -51,6 +51,7 @@ fun PlayerScreen(
     var error by remember(episode.id) { mutableStateOf<String?>(null) }
     var locked by remember(episode.id) { mutableStateOf(false) }
     var showSourceMenu by remember(episode.id) { mutableStateOf(false) }
+    var showQualityMenu by remember(episode.id) { mutableStateOf(false) }
 
     val preferences = playbackPreferences.get().copy(
         playbackSpeed = settings.playbackSpeed,
@@ -71,7 +72,15 @@ fun PlayerScreen(
             val preferredAudio = settings.defaultAudio
             val preferredSubtitle = settings.defaultSubtitle
             val preferred = resolved.sortedByDescending { source ->
-                var score = 0
+                var score = source.quality?.let { quality ->
+                    when (settings.defaultQuality) {
+                        "1080p" -> if (quality == 1080) 8 else 0
+                        "720p" -> if (quality == 720) 8 else 0
+                        "480p" -> if (quality == 480) 8 else 0
+                        "360p" -> if (quality == 360) 8 else 0
+                        else -> 0
+                    }
+                } ?: 0
                 if (preferredAudio == "Dub" && source.audioType.equals("Dub", ignoreCase = true)) score += 4
                 if (preferredAudio == "Sub" && source.audioType.equals("Sub", ignoreCase = true)) score += 4
                 if (preferredSubtitle == "On" && !source.language.isNullOrBlank()) score += 1
@@ -165,6 +174,19 @@ fun PlayerScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
                 }
                 Text("Episode ${episode.number}", color = Color.White, modifier = Modifier.weight(1f))
+                if (sources.mapNotNull { it.quality }.distinct().size > 1) {
+                    Box {
+                        TextButton(onClick = { showQualityMenu = true }) { Text("Quality", color = KumoPurple) }
+                        DropdownMenu(expanded = showQualityMenu, onDismissRequest = { showQualityMenu = false }) {
+                            sources.mapNotNull { it.quality }.distinct().sortedDescending().forEach { quality ->
+                                DropdownMenuItem(text = { Text("${quality}p") }, onClick = {
+                                    sources.firstOrNull { it.quality == quality }?.let { selected = it }
+                                    showQualityMenu = false
+                                })
+                            }
+                        }
+                    }
+                }
                 if (sources.size > 1) {
                     TextButton(onClick = { showSourceMenu = true }) {
                         Text("Source", color = KumoPurple)
