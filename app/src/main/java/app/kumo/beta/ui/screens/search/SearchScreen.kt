@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.kumo.beta.data.DemoData
 import app.kumo.beta.data.local.PreferencesManager
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
@@ -39,7 +38,7 @@ fun SearchScreen(
     initialQuery: String = ""
 ) {
     var query by remember { mutableStateOf(initialQuery) }
-    var results by remember { mutableStateOf(DemoData.allTitles) }
+    var results by remember { mutableStateOf<List<Title>>(emptyList()) }
     var selectedType by remember { mutableStateOf<MediaType?>(null) }
     var selectedGenre by remember { mutableStateOf<String?>(null) }
     var showFilters by remember { mutableStateOf(openFiltersInitially) }
@@ -56,15 +55,15 @@ fun SearchScreen(
 
     LaunchedEffect(query) {
         if (query.isBlank()) {
-            results = DemoData.allTitles
+            results = providerEngine.catalog("popular").map { it.title }
             return@LaunchedEffect
+        }
         }
         delay(250)
         searching = true
         preferencesManager.addSearchQuery(query)
         searchHistory = preferencesManager.searchHistory
         val providerResults = runCatching { providerEngine.search(query) }.getOrDefault(emptyList()).map { it.title }
-        val localResults = DemoData.search(query)
         results = (providerResults + localResults)
             .distinctBy { it.id }
         searching = false
