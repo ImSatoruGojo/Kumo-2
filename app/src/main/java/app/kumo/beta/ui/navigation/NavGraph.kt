@@ -24,6 +24,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.kumo.beta.data.CatalogStore
+import app.kumo.beta.data.local.DownloadManager
+import android.widget.Toast
+import kotlinx.coroutines.launch
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.extension.ExtensionManager
 import app.kumo.beta.provider.JikanProvider
@@ -68,6 +71,8 @@ fun KumoNavGraph() {
     val extensionManager = remember { ExtensionManager(context, providerRegistry) }
     val providerEngine = remember { ProviderEngine(providerRegistry) }
     val sourceResolver = remember { SourceResolver(providerRegistry) }
+    val coroutineScope = rememberCoroutineScope()
+    val downloadManager = remember { DownloadManager(context) }
     val homeVoiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
@@ -195,6 +200,24 @@ fun KumoNavGraph() {
                         onBack = { navController.popBackStack() },
                         onEpisodeClick = { episode ->
                             navController.navigate("player/" + title.id + "/" + episode.id)
+                        },
+                        onDownloadEpisode = { episode ->
+                            coroutineScope.launch {
+                                val source = sourceResolver.resolve(episode).firstOrNull()
+                                if (source == null) {
+                                    Toast.makeText(context, "No downloadable source available", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val result = downloadManager.downloadDirect(
+                                        mediaId = title.id,
+                                        title = title.title,
+                                        episodeTitle = episode.title ?: "Episode " + episode.number,
+                                        coverUrl = title.posterUrl.orEmpty(),
+                                        quality = source.quality?.let { it.toString() + "p" } ?: "Auto",
+                                        sourceUrl = source.url
+                                    )
+                                    Toast.makeText(context, result.fold({ "Download complete" }, { it.message ?: "Download failed" }), Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         }
                     )
                 }
