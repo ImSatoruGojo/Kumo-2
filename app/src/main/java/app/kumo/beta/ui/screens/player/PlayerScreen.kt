@@ -186,20 +186,23 @@ fun PlayerScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
                 }
                 Text("Episode ${episode.number}", color = Color.White, modifier = Modifier.weight(1f))
-                if (sources.mapNotNull { it.quality }.distinct().size > 1) {
-                    Box {
-                        TextButton(onClick = { showQualityMenu = true }) { Text("Quality", color = KumoPurple) }
-                        DropdownMenu(expanded = showQualityMenu, onDismissRequest = { showQualityMenu = false }) {
-                            sources.mapNotNull { it.quality }.distinct().sortedDescending().forEach { quality ->
-                                DropdownMenuItem(text = { Text("${quality}p") }, onClick = {
-                                    sources.firstOrNull { it.quality == quality }?.let { selected = it }
-                                    showQualityMenu = false
-                                })
                 if (settings.pipEnabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     TextButton(onClick = {
                         (context as? android.app.Activity)?.enterPictureInPictureMode()
                     }) { Text("PiP", color = KumoPurple) }
                 }
+                if (sources.mapNotNull { it.quality }.distinct().size > 1) {
+                    Box {
+                        TextButton(onClick = { showQualityMenu = true }) { Text("Quality", color = KumoPurple) }
+                        DropdownMenu(expanded = showQualityMenu, onDismissRequest = { showQualityMenu = false }) {
+                            sources.mapNotNull { it.quality }.distinct().sortedDescending().forEach { quality ->
+                                DropdownMenuItem(
+                                    text = { Text("${quality}p") },
+                                    onClick = {
+                                        sources.firstOrNull { it.quality == quality }?.let { selected = it }
+                                        showQualityMenu = false
+                                    }
+                                )
                             }
                         }
                     }
