@@ -105,10 +105,11 @@ class RepositoryManager(context: Context) {
     }
 
     suspend fun refreshAllRepositories(): Map<String, RepositoryResult> = withContext(Dispatchers.IO) {
-        repositories.filter { it.enabled }
-            .map { repo ->
-                repo.id to kotlinx.coroutines.async { refreshRepository(repo.id) }
+        coroutineScope {
+            val deferred = repositories.filter { it.enabled }.map { repo ->
+                repo.id to async { refreshRepository(repo.id) }
             }
-            .associate { (id, deferred) -> id to deferred.await() }
+            deferred.associate { (id, job) -> id to job.await() }
+        }
     }
 }
