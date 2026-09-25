@@ -31,6 +31,7 @@ import app.kumo.beta.provider.ProviderEngine
 import app.kumo.beta.provider.ProviderRegistry
 import app.kumo.beta.provider.SourceResolver
 import app.kumo.beta.ui.screens.details.DetailsScreen
+import app.kumo.beta.ui.screens.downloads.DownloadsScreen
 import app.kumo.beta.ui.screens.home.HomeScreen
 import app.kumo.beta.ui.screens.library.LibraryScreen
 import app.kumo.beta.ui.screens.search.SearchScreen
@@ -46,12 +47,13 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Search : Screen("search", "Search", Icons.Default.Search)
     data object Library : Screen("library", "Library", Icons.Default.VideoLibrary)
     data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
+    data object Downloads : Screen("downloads", "Downloads", Icons.Default.VideoLibrary)
     data object Details : Screen("details/{titleId}", "Details", Icons.Default.Home) {
         fun create(titleId: String) = "details/" + titleId
     }
 }
 
-val bottomScreens = listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Settings)
+val bottomScreens = listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Downloads, Screen.Settings)
 
 @Composable
 fun KumoNavGraph() {
@@ -169,6 +171,9 @@ fun KumoNavGraph() {
             }
             composable(Screen.Library.route) {
                 LibraryScreen()
+            }
+            composable(Screen.Downloads.route) {
+                DownloadsScreen()
             }
             composable(Screen.Settings.route) {
                 SettingsScreen()
