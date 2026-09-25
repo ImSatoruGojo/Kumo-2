@@ -118,6 +118,9 @@ fun PlayerScreen(
             delay(5000)
             val duration = player.duration.takeIf { it > 0L } ?: episode.durationMs ?: 0L
             if (duration > 0L) {
+                if (settings.autoMarkWatched && player?.currentPosition ?: 0L >= (duration * 0.9f).toLong()) {
+                    libraryStore.markWatched(contentId, episode.id)
+                }
                 libraryStore.saveProgress(
                     Progress(
                         contentId = contentId,
@@ -135,6 +138,9 @@ fun PlayerScreen(
             player?.let {
                 val duration = it.duration.takeIf { value -> value > 0L } ?: episode.durationMs ?: 0L
                 if (duration > 0L) {
+                if (settings.autoMarkWatched && player?.currentPosition ?: 0L >= (duration * 0.9f).toLong()) {
+                    libraryStore.markWatched(contentId, episode.id)
+                }
                     libraryStore.saveProgress(
                         Progress(
                             contentId = contentId,
