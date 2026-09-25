@@ -9,8 +9,8 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,6 +19,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.kumo.beta.data.CatalogStore
+import app.kumo.beta.extension.ExtensionManager
 import app.kumo.beta.provider.JikanProvider
 import app.kumo.beta.provider.ProviderEngine
 import app.kumo.beta.provider.ProviderRegistry
@@ -40,7 +41,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Library : Screen("library", "Library", Icons.Default.VideoLibrary)
     data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     data object Details : Screen("details/{titleId}", "Details", Icons.Default.Home) {
-        fun create(titleId: String) = "details/$titleId"
+        fun create(titleId: String) = "details/$" + titleId
     }
 }
 
@@ -48,14 +49,24 @@ val bottomScreens = listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Se
 
 @Composable
 fun KumoNavGraph() {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     val showBottomBar = bottomScreens.any { it.route == currentRoute }
     val providerRegistry = remember { ProviderRegistry().apply { registerProvider(JikanProvider()) } }
+    val extensionManager = remember { ExtensionManager(context, providerRegistry) }
     val providerEngine = remember { ProviderEngine(providerRegistry) }
     val sourceResolver = remember { SourceResolver(providerRegistry) }
+
+    LaunchedEffect(extensionManager) {
+        extensionManager.loadInstalled()
+    }
+
+    DisposableEffect(extensionManager) {
+        onDispose { extensionManager.unloadAll() }
+    }
 
     Scaffold(
         containerColor = KumoBlack,
@@ -138,7 +149,7 @@ fun KumoNavGraph() {
                         title = loadedTitle,
                         onBack = { navController.popBackStack() },
                         onEpisodeClick = { episode ->
-                            navController.navigate("player/${title.id}/${episode.id}")
+                            navController.navigate("player/" + title.id + "/" + episode.id)
                         }
                     )
                 }
