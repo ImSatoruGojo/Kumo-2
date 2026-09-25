@@ -8,4 +8,5 @@ object CatalogStore {
     fun put(title: Title) { titles[title.id] = title }
     fun putAll(items: Iterable<Title>) { items.forEach(::put) }
     fun get(id: String): Title? = titles[id]
+    fun allTitles(): List<Title> = titles.values.toList()
 }
