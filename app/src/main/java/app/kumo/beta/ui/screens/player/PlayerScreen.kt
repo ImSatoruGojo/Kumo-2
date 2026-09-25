@@ -60,6 +60,18 @@ fun PlayerScreen(
         preferredAudio = settings.defaultAudio.takeIf { it != "Auto" },
         preferredSubtitle = settings.defaultSubtitle.takeIf { it != "Auto" }
     )
+    DisposableEffect(settings.keepScreenOn) {
+        val activity = context as? android.app.Activity
+        if (settings.keepScreenOn) {
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     val savedProgress = remember(contentId, episode.id) {
         libraryStore.getProgress().firstOrNull {
             it.contentId == contentId && it.episodeId == episode.id
