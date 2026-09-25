@@ -45,6 +45,7 @@ fun DetailsScreen(
     title: Title,
     onBack: () -> Unit,
     onEpisodeClick: (app.kumo.beta.model.Episode) -> Unit = {},
+    onDownloadEpisode: (app.kumo.beta.model.Episode) -> Unit = {}
 ) {
     val context = LocalContext.current
     val libManager = remember { LibraryManager(context) }
@@ -524,16 +525,16 @@ private fun formatDuration(durationMs: Long): String {
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
     return if (hours > 0) hours.toString() + "h " + minutes + "m" else minutes.toString() + "m"
+}
 
     pendingDownload?.let { episode ->
         AlertDialog(
             onDismissRequest = { pendingDownload = null },
             title = { Text("Download episode?") },
-            text = { Text("Save ${episode.title ?: "Episode " + episode.number} to your selected download folder") },
+            text = { Text("Save " + (episode.title ?: "Episode " + episode.number) + " to your selected download folder") },
             confirmButton = {
                 TextButton(onClick = { pendingDownload = null; onDownloadEpisode(episode) }) { Text("Download") }
             },
             dismissButton = { TextButton(onClick = { pendingDownload = null }) { Text("Cancel") } }
         )
     }
-}
