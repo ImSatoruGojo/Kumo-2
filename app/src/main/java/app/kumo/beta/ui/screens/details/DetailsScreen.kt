@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,7 +43,7 @@ import coil.compose.AsyncImage
 fun DetailsScreen(
     title: Title,
     onBack: () -> Unit,
-    onEpisodeClick: (app.kumo.beta.model.Episode) -> Unit = {}
+    onEpisodeClick: (app.kumo.beta.model.Episode) -> Unit = {},
 ) {
     val context = LocalContext.current
     val libManager = remember { LibraryManager(context) }
@@ -411,6 +412,11 @@ fun DetailsScreen(
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(text = ep.durationMs?.let { formatDuration(it) } ?: "Duration unavailable", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    IconButton(onClick = { onDownloadEpisode(ep) }) {
+                                        Icon(Icons.Default.Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
                             }
                         }
                     }
