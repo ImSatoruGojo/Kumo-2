@@ -1,5 +1,8 @@
 package app.kumo.beta.ui.screens.settings
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.kumo.beta.data.local.StorageLocationManager
 import app.kumo.beta.repository.ExtensionInfo
 import app.kumo.beta.repository.ExtensionInstaller
 import app.kumo.beta.repository.Repository
@@ -30,12 +34,26 @@ fun SettingsScreen() {
     val scope = rememberCoroutineScope()
     val repositoryManager = remember { RepositoryManager(context) }
     val extensionInstaller = remember { ExtensionInstaller(context) }
+    val storageManager = remember { StorageLocationManager(context) }
+
     var repositories by remember { mutableStateOf(repositoryManager.getRepositories()) }
     var extensions by remember { mutableStateOf(repositoryManager.getAllExtensions()) }
-    var installed by remember { mutableStateOf(extensionInstaller.installed()) }
     var repositoryUrl by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var storageName by remember { mutableStateOf(storageManager.displayName()) }
+
+    val folderPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            storageManager.setTreeUri(uri, flags)
+            storageName = storageManager.displayName() ?: "Selected folder"
+            status = "Download folder connected"
+        }
+    }
+
     fun refreshUi() {
         repositories = repositoryManager.getRepositories()
         extensions = repositoryManager.getAllExtensions().map { extension ->
@@ -47,81 +65,155 @@ fun SettingsScreen() {
                 versionCode = current?.versionCode ?: extension.versionCode
             )
         }
-        installed = extensionInstaller.installed()
+        storageName = storageManager.displayName()
     }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(KumoBlack).padding(16.dp),
-        contentPadding = PaddingValues(bottom = 24.dp)
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("Settings", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(16.dp))
+            Text("Settings", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            Text("Playback, storage and extensions", color = KumoTextSecondary, fontSize = 13.sp)
         }
+
         item {
-            SettingsGroup("General") { SettingsItem("Theme", "Dark"); SettingsItem("App language", "System"); SettingsItem("Cache limit", "512 MB") }
-            Spacer(Modifier.height(16.dp))
-        }
-        item {
-            SettingsGroup("Player") { SettingsItem("Default quality", "Auto"); SettingsItem("Playback speed", "1x"); SettingsItem("Autoplay next", "Off"); SettingsItem("Double tap seek", "10 seconds") }
-            Spacer(Modifier.height(16.dp))
-        }
-        item {
-            Text("Repositories", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(value = repositoryUrl, onValueChange = { repositoryUrl = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Repository URL") }, placeholder = { Text("https://example.com/repo.json") })
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(enabled = repositoryUrl.isNotBlank() && !busy, onClick = {
-                    runCatching { repositoryManager.addRepository(repositoryUrl) }.onSuccess { repositoryUrl = ""; refreshUi(); status = "Repository added" }.onFailure { status = it.message ?: "Invalid repository URL" }
-                }) { Text("Add") }
-                OutlinedButton(enabled = !busy && repositories.any { it.enabled }, onClick = {
-                    busy = true
-                    scope.launch {
-                        val results = repositoryManager.refreshAllRepositories()
-                        refreshUi(); busy = false
-                        status = if (results.values.any { it is RepositoryResult.Success }) "Repositories refreshed" else "No repository could be refreshed"
+            SettingsGroup("Storage") {
+                SettingsItem("Download folder", storageName ?: "Not connected")
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(onClick = { folderPicker.launch(null) }) { Text("Choose folder") }
+                    if (storageName != null) {
+                        OutlinedButton(onClick = {
+                            storageManager.clearTreeUri()
+                            refreshUi()
+                            status = "Download folder disconnected"
+                        }) { Text("Disconnect") }
                     }
-                }) { Text(if (busy) "Refreshing…" else "Refresh all") }
+                }
+                Text(
+                    "Completed direct video downloads are saved in the folder you choose",
+                    color = KumoTextSecondary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
             }
-            status?.let { Text(it, color = KumoTextSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp)) }
-            Spacer(Modifier.height(12.dp))
         }
+
+        item {
+            SettingsGroup("General") {
+                SettingsItem("Theme", "Dark")
+                SettingsItem("App language", "System")
+                SettingsItem("Cache limit", "512 MB")
+            }
+        }
+
+        item {
+            SettingsGroup("Player") {
+                SettingsItem("Default quality", "Auto")
+                SettingsItem("Playback speed", "1x")
+                SettingsItem("Autoplay next", "Off")
+                SettingsItem("Double tap seek", "10 seconds")
+            }
+        }
+
+        item {
+            Text("Repositories", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+            OutlinedTextField(
+                value = repositoryUrl,
+                onValueChange = { repositoryUrl = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Repository URL") },
+                placeholder = { Text("https://example.com/repo.json") }
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                Button(enabled = repositoryUrl.isNotBlank() && !busy, onClick = {
+                    runCatching { repositoryManager.addRepository(repositoryUrl) }
+                        .onSuccess {
+                            repositoryUrl = ""
+                            refreshUi()
+                            status = "Repository added"
+                        }
+                        .onFailure { status = it.message ?: "Invalid repository URL" }
+                }) { Text("Add") }
+
+                OutlinedButton(
+                    enabled = !busy && repositories.any { it.enabled },
+                    onClick = {
+                        busy = true
+                        scope.launch {
+                            val results = repositoryManager.refreshAllRepositories()
+                            refreshUi()
+                            busy = false
+                            status = if (results.values.any { it is RepositoryResult.Success }) {
+                                "Repositories refreshed"
+                            } else {
+                                "No repository could be refreshed"
+                            }
+                        }
+                    }
+                ) { Text(if (busy) "Refreshing…" else "Refresh all") }
+            }
+            status?.let {
+                Text(it, color = KumoTextSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            }
+        }
+
         items(repositories, key = { it.id }) { repo ->
-            RepositoryRow(repo,
+            RepositoryRow(
+                repository = repo,
                 onRefresh = {
                     busy = true
-                    scope.launch { val result = repositoryManager.refreshRepository(repo.id); refreshUi(); busy = false; status = when (result) { is RepositoryResult.Success -> "Loaded " + result.extensions.size + " extensions"; is RepositoryResult.Failure -> result.message } }
+                    scope.launch {
+                        val result = repositoryManager.refreshRepository(repo.id)
+                        refreshUi()
+                        busy = false
+                        status = when (result) {
+                            is RepositoryResult.Success -> "Loaded " + result.extensions.size + " extensions"
+                            is RepositoryResult.Failure -> result.message
+                        }
+                    }
                 },
-                onRemove = { repositoryManager.removeRepository(repo.id); refreshUi() })
-            Spacer(Modifier.height(8.dp))
+                onRemove = {
+                    repositoryManager.removeRepository(repo.id)
+                    refreshUi()
+                }
+            )
         }
+
         if (extensions.isNotEmpty()) {
-            item { Text("Available extensions", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold); Spacer(Modifier.height(8.dp)) }
+            item {
+                Text("Available extensions", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                Text("Install, enable, disable or remove installed extensions", color = KumoTextSecondary, fontSize = 12.sp)
+            }
             items(extensions, key = { it.id }) { extension ->
-                ExtensionRow(
-                    extension,
-                    extensionInstaller,
-                    onChanged = { refreshUi() },
-                    onError = { status = it }
-                )
-                Spacer(Modifier.height(8.dp))
+                ExtensionRow(extension, extensionInstaller, { refreshUi() }, { status = it })
             }
         }
+
         item {
-            Spacer(Modifier.height(16.dp))
-            SettingsGroup("About") { SettingsItem("Version", "0.1.0-beta"); SettingsItem("Build", "Core implementation") }
+            SettingsGroup("About") {
+                SettingsItem("Version", "0.1.0-beta")
+                SettingsItem("Build", "Core implementation")
+            }
         }
     }
 }
 
 @Composable
 private fun RepositoryRow(repository: Repository, onRefresh: () -> Unit, onRemove: () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(12.dp)).padding(12.dp)) {
+    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
         Text(repository.name, color = Color.White, fontWeight = FontWeight.SemiBold)
-        Text(repository.url, color = KumoTextSecondary, fontSize = 12.sp)
+        Text(repository.url, color = KumoTextSecondary, fontSize = 12.sp, maxLines = 2)
         repository.lastRefreshStatus?.let { Text("Status: " + it, color = KumoTextSecondary, fontSize = 12.sp) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { TextButton(onClick = onRefresh) { Text("Refresh", color = KumoPurple) }; TextButton(onClick = onRemove) { Text("Remove", color = KumoTextSecondary) } }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onRefresh) { Text("Refresh", color = KumoPurple) }
+            TextButton(onClick = onRemove) { Text("Remove", color = KumoTextSecondary) }
+        }
     }
 }
 
@@ -134,10 +226,12 @@ private fun ExtensionRow(
 ) {
     var installing by remember(extension.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(12.dp)).padding(12.dp)) {
+
+    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
         Text(extension.name, color = Color.White, fontWeight = FontWeight.SemiBold)
         Text(extension.type.name, color = KumoTextSecondary, fontSize = 12.sp)
         extension.version?.let { Text("Version " + it, color = KumoTextSecondary, fontSize = 12.sp) }
+
         if (extension.installed) {
             Text(
                 if (extension.enabled) "Installed and enabled" else "Installed and disabled",
@@ -148,15 +242,11 @@ private fun ExtensionRow(
                 OutlinedButton(onClick = {
                     installer.setEnabled(extension.id, !extension.enabled)
                     onChanged()
-                }) {
-                    Text(if (extension.enabled) "Disable" else "Enable")
-                }
+                }) { Text(if (extension.enabled) "Disable" else "Enable") }
                 TextButton(onClick = {
                     installer.removeInstalled(extension.id)
                     onChanged()
-                }) {
-                    Text("Uninstall", color = KumoTextSecondary)
-                }
+                }) { Text("Uninstall", color = KumoTextSecondary) }
             }
         } else {
             Button(
@@ -170,23 +260,21 @@ private fun ExtensionRow(
                         installing = false
                     }
                 }
-            ) {
-                Text(if (installing) "Installing…" else "Install")
-            }
+            ) { Text(if (installing) "Installing…" else "Install") }
         }
     }
 }
 
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Text(title, color = KumoTextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 8.dp))
-    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(12.dp)).padding(vertical = 4.dp), content = content)
+    Text(title, color = KumoTextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
+    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(vertical = 4.dp), content = content)
 }
 
 @Composable
 private fun SettingsItem(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = Color.White, fontSize = 15.sp)
-        Text(value, color = KumoTextSecondary, fontSize = 14.sp)
+        Text(value, color = KumoTextSecondary, fontSize = 14.sp, maxLines = 1)
     }
 }
