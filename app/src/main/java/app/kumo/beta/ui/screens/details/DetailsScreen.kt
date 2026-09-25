@@ -519,6 +519,18 @@ fun DetailsScreen(
         }
     }
 }
+    pendingDownload?.let { episode ->
+        AlertDialog(
+            onDismissRequest = { pendingDownload = null },
+            title = { Text("Download episode?") },
+            text = { Text("Save " + (episode.title ?: "Episode " + episode.number) + " to your selected download folder") },
+            confirmButton = {
+                TextButton(onClick = { pendingDownload = null; onDownloadEpisode(episode) }) { Text("Download") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDownload = null }) { Text("Cancel") } }
+        )
+    }
+
 
 private fun formatDuration(durationMs: Long): String {
     val totalMinutes = (durationMs / 60_000L).toInt().coerceAtLeast(0)
