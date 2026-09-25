@@ -29,16 +29,25 @@ class JikanProvider : KumoProvider {
 
     override suspend fun getEpisodes(title: Title): List<Episode> {
         val malId = title.id.removePrefix("mal:")
-        val data = request("https://api.jikan.moe/v4/anime/" + malId + "/episodes?limit=100").optJSONArray("data") ?: return emptyList()
-        return (0 until data.length()).mapNotNull { i ->
-            data.optJSONObject(i)?.let { ep ->
-                Episode(
-                    id = "jikan:" + malId + ":" + ep.optInt("mal_id", i + 1),
-                    number = ep.optInt("mal_id", i + 1),
-                    title = ep.optString("title").takeIf { it.isNotBlank() }
-                )
+        val result = mutableListOf<Episode>()
+        var page = 1
+        var hasNext = true
+        while (hasNext && page <= 20) {
+            val root = request("https://api.jikan.moe/v4/anime/" + malId + "/episodes?limit=100&page=" + page)
+            val data = root.optJSONArray("data") ?: break
+            for (i in 0 until data.length()) {
+                data.optJSONObject(i)?.let { ep ->
+                    result += Episode(
+                        id = "jikan:" + malId + ":" + ep.optInt("mal_id", result.size + 1),
+                        number = ep.optInt("mal_id", result.size + 1),
+                        title = ep.optString("title").takeIf { it.isNotBlank() }
+                    )
+                }
             }
+            hasNext = root.optJSONObject("pagination")?.optBoolean("has_next_page", false) == true
+            page++
         }
+        return result.distinctBy { it.number }.sortedBy { it.number }
     }
 
     override suspend fun getSources(episode: Episode): List<KumoStreamSource> = emptyList()
