@@ -20,6 +20,23 @@ class LibraryStore(context: Context) {
             Progress(o.getString("contentId"),o.getString("episodeId"),o.getLong("positionMs"),o.getLong("durationMs"),o.getLong("updatedAt"))
         }.getOrNull() }.sortedByDescending { it.updatedAt }
     }
+    fun markWatched(contentId: String, episodeId: String) {
+        val current = prefs.getStringSet("watched", emptySet())?.toMutableSet() ?: mutableSetOf()
+        current += contentId + "|" + episodeId
+        prefs.edit().putStringSet("watched", current).apply()
+    }
+
+    fun isWatched(contentId: String, episodeId: String): Boolean =
+        prefs.getStringSet("watched", emptySet())?.contains(contentId + "|" + episodeId) == true
+
+    fun clearHistory() {
+        prefs.edit().remove("progress").remove("watched").apply()
+    }
+
+    fun getContinueWatching(): List<Progress> =
+        getProgress().filter { it.durationMs <= 0L || it.positionMs < (it.durationMs * 0.9f).toLong() }
+            .filterNot { isWatched(it.contentId, it.episodeId) }
+
     fun saveProgress(progress: Progress) {
         val items=getProgress().filterNot { it.contentId==progress.contentId && it.episodeId==progress.episodeId }.toMutableList()
         items += progress
