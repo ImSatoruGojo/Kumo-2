@@ -11,9 +11,22 @@ class ProviderEngine(private val registry: ProviderRegistry) {
         registry.getEnabledProviders().filter{type==null || type in it.supportedTypes}
             .map{p->async{runCatching{p.search(query)}.getOrDefault(emptyList())}}.awaitAll().flatten().let(::mergeTitles)
     }
-    suspend fun load(title:Title):Title {
-        for(p in registry.getEnabledProviders().filter{title.type in it.supportedTypes})
-            runCatching{p.load(title)}.getOrNull()?.takeIf{it.title.isNotBlank()}?.let{return it}
+    suspend fun load(title: Title): Title {
+        for (p in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
+            runCatching { p.load(title) }
+                .getOrNull()
+                ?.takeIf { it.title.isNotBlank() }
+                ?.let { return it }
+        }
+        return title
+    }
+
+    suspend fun episodes(title: Title): Title {
+        for (p in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
+            val loaded = runCatching { p.load(title) }.getOrNull() ?: title
+            val episodes = runCatching { p.getEpisodes(loaded) }.getOrDefault(emptyList())
+            if (episodes.isNotEmpty()) return loaded.copy(episodes = episodes)
+        }
         return title
     }
     private fun mergeTitles(results:List<KumoSearchResult>):List<KumoSearchResult>{
