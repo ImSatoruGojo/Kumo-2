@@ -518,8 +518,6 @@ fun DetailsScreen(
             }
         }
     }
-}
-
 
     pendingDownload?.let { episode ->
         AlertDialog(
@@ -532,6 +530,9 @@ fun DetailsScreen(
             dismissButton = { TextButton(onClick = { pendingDownload = null }) { Text("Cancel") } }
         )
     }
+
+}
+
 
 
 private fun formatDuration(durationMs: Long): String {
