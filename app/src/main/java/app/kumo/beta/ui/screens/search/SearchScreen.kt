@@ -32,6 +32,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SearchScreen(
+    providerEngine: ProviderEngine,
     onTitleClick: (Title) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
