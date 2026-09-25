@@ -21,6 +21,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import app.kumo.beta.data.LibraryStore
 import app.kumo.beta.data.PlaybackPreferencesStore
+import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.Episode
 import app.kumo.beta.model.Progress
 import app.kumo.beta.provider.KumoStreamSource
@@ -42,6 +43,8 @@ fun PlayerScreen(
     val context = LocalContext.current
     val libraryStore = remember { LibraryStore(context) }
     val playbackPreferences = remember { PlaybackPreferencesStore(context) }
+    val settingsStore = remember { SettingsPreferencesStore(context) }
+    val settings = settingsStore.get()
 
     var sources by remember(episode.id) { mutableStateOf<List<KumoStreamSource>>(emptyList()) }
     var selected by remember(episode.id) { mutableStateOf<KumoStreamSource?>(null) }
@@ -49,7 +52,13 @@ fun PlayerScreen(
     var locked by remember(episode.id) { mutableStateOf(false) }
     var showSourceMenu by remember(episode.id) { mutableStateOf(false) }
 
-    val preferences = playbackPreferences.get()
+    val preferences = playbackPreferences.get().copy(
+        playbackSpeed = settings.playbackSpeed,
+        seekSeconds = settings.doubleTapSeekSeconds,
+        autoplayNext = settings.autoplayNext,
+        preferredAudio = settings.defaultAudio.takeIf { it != "Auto" },
+        preferredSubtitle = settings.defaultSubtitle.takeIf { it != "Auto" }
+    )
     val savedProgress = remember(contentId, episode.id) {
         libraryStore.getProgress().firstOrNull {
             it.contentId == contentId && it.episodeId == episode.id
@@ -58,7 +67,19 @@ fun PlayerScreen(
 
     LaunchedEffect(episode.id) {
         val result = withContext(Dispatchers.IO) { runCatching { sourceResolver.resolve(episode) } }
-        result.onSuccess { sources = it; selected = it.firstOrNull() }
+        result.onSuccess { resolved ->
+            val preferredAudio = settings.defaultAudio
+            val preferredSubtitle = settings.defaultSubtitle
+            val preferred = resolved.sortedByDescending { source ->
+                var score = 0
+                if (preferredAudio == "Dub" && source.audioType.equals("Dub", ignoreCase = true)) score += 4
+                if (preferredAudio == "Sub" && source.audioType.equals("Sub", ignoreCase = true)) score += 4
+                if (preferredSubtitle == "On" && !source.language.isNullOrBlank()) score += 1
+                score
+            }
+            sources = preferred
+            selected = preferred.firstOrNull()
+        }
             .onFailure { error = it.message ?: "Unable to resolve a stream" }
     }
 
@@ -241,7 +262,7 @@ fun PlayerScreen(
                             Text(
                                 listOfNotNull(
                                     item.providerId,
-                                    item.quality?.let { "itp" },
+                                    item.quality?.let { "${it}p" },
                                     item.language,
                                     item.audioType
                                 ).joinToString(" • ")
