@@ -41,7 +41,8 @@ import coil.compose.AsyncImage
 @Composable
 fun DetailsScreen(
     title: Title,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEpisodeClick: (app.kumo.beta.model.Episode) -> Unit = {}
 ) {
     val context = LocalContext.current
     val libManager = remember { LibraryManager(context) }
@@ -399,15 +400,15 @@ fun DetailsScreen(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                             .clickable {
-                                activeEpisodeToPlay = ep
                                 cwManager.saveProgress(
                                     Progress(
                                         contentId = title.id,
                                         episodeId = ep.id,
-                                        positionMs = 600000,
-                                        durationMs = 1440000
+                                        positionMs = 0,
+                                        durationMs = ep.durationMs ?: 0
                                     )
                                 )
+                                onEpisodeClick(ep)
                             },
                         shape = RoundedCornerShape(8.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -444,20 +445,6 @@ fun DetailsScreen(
                                 )
                             }
                         }
-                    }
-                }
-                activeEpisodeToPlay?.let { playingEp ->
-                    val videoSampleUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-                    androidx.compose.ui.window.Dialog(
-                        onDismissRequest = { activeEpisodeToPlay = null },
-                        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
-                    ) {
-                        app.kumo.beta.ui.components.KumoVideoPlayer(
-                            videoUrl = videoSampleUrl,
-                            title = title.title,
-                            subtitle = playingEp.title ?: "Episode ${playingEp.number}",
-                            onClose = { activeEpisodeToPlay = null }
-                        )
                     }
                 }
             } else if (title.chapters.isNotEmpty()) {
