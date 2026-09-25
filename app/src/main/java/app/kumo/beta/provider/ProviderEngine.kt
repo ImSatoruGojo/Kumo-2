@@ -35,12 +35,35 @@ class ProviderEngine(private val registry: ProviderRegistry) {
     }
 
     suspend fun episodes(title: Title): Title = withContext(Dispatchers.IO) {
-        for (provider in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
-            val loaded = runCatching { provider.load(title) }.getOrNull() ?: title
-            val episodes = runCatching { provider.getEpisodes(loaded) }.getOrDefault(emptyList())
-            if (episodes.isNotEmpty()) return@withContext loaded.copy(episodes = episodes)
+        val providers = registry.getEnabledProviders().filter { title.type in it.supportedTypes }
+        if (providers.isEmpty()) return@withContext title
+
+        val loadedTitles = coroutineScope {
+            providers.map { provider ->
+                async {
+                    val loaded = runCatching { provider.load(title) }.getOrNull() ?: title
+                    val episodes = runCatching { provider.getEpisodes(loaded) }.getOrDefault(emptyList())
+                    loaded to episodes
+                }
+            }.awaitAll()
         }
-        title
+
+        val mergedEpisodes = loadedTitles
+            .flatMap { it.second }
+            .groupBy { it.number }
+            .mapNotNull { (_, sameNumber) ->
+                sameNumber.firstOrNull { !it.title.isNullOrBlank() } ?: sameNumber.firstOrNull()
+            }
+            .sortedBy { it.number }
+
+        val bestLoaded = loadedTitles
+            .map { it.first }
+            .maxByOrNull { score(it) }
+            ?: title
+
+        bestLoaded.copy(
+            episodes = if (mergedEpisodes.isNotEmpty()) mergedEpisodes else bestLoaded.episodes
+        )
     }
 
     private fun mergeTitles(results: List<KumoSearchResult>): List<KumoSearchResult> {
