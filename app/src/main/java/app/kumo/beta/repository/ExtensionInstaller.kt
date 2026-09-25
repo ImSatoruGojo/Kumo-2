@@ -21,8 +21,12 @@ class ExtensionInstaller(context: Context) {
                 .resolve(extension.repositoryId)
             directory.mkdirs()
 
-            val temp = File(directory, extension.id.replace(Regex("[^A-Za-z0-9._-]"), "_") + ".part")
-            val finalFile = File(directory, extension.id.replace(Regex("[^A-Za-z0-9._-]"), "_"))
+            val safeId = extension.id.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            val downloadedName = extension.downloadUrl.substringBefore("?").substringBefore("#").substringAfterLast("/").takeIf { it.contains(".") }
+            val finalName = downloadedName?.take(100) ?: safeId + ".extension"
+            val temp = File(directory, finalName + ".part")
+            val finalFile = File(directory, finalName)
+
 
             val connection = URL(extension.downloadUrl).openConnection() as HttpURLConnection
             connection.connectTimeout = 15000
