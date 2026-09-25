@@ -57,7 +57,7 @@ class JikanProvider : KumoProvider {
         val genreList = if (genres == null) emptyList() else (0 until genres.length()).mapNotNull {
             genres.optJSONObject(it)?.optString("name")?.takeIf(String::isNotBlank)
         }
-        return (existing ?: Title("mal:" + malId, optString("title").ifBlank { optString("title_english") }, MediaType.ANIME, optString("synopsis"))).copy(
+        return (existing ?: Title(\n                id = "mal:" + malId,\n                title = optString("title").ifBlank { optString("title_english") },\n                type = MediaType.ANIME,\n                description = optString("synopsis")\n            )).copy(
             title = optString("title_english").ifBlank { optString("title") },
             description = optString("synopsis"),
             genres = genreList,
