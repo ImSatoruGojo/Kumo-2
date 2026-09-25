@@ -31,8 +31,19 @@ object RepositoryParser {
         for (i in 0 until lists.length()) {
             val listUrl = resolve(url, lists.optString(i))
             val list = runCatching {
-                URI(listUrl).toURL().openStream().bufferedReader().use { it.readText() }
+                val connection = URI(listUrl).toURL().openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 8000
+                connection.readTimeout = 12000
+                connection.instanceFollowRedirects = true
+                connection.setRequestProperty("User-Agent", "Kumo/0.2")
+                try {
+                    require(connection.responseCode in 200..299) { "HTTP " + connection.responseCode }
+                    connection.inputStream.bufferedReader().use { it.readText() }
+                } finally {
+                    connection.disconnect()
+                }
             }.getOrNull() ?: continue
+
             val array = runCatching { JSONArray(list) }.getOrNull() ?: continue
             extensions += cloudStreamEntries(url, listUrl, array)
         }
