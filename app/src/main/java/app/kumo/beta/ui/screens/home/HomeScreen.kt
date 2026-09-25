@@ -27,8 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.data.DemoData
-import app.kumo.beta.data.local.ContinueWatchingManager
-import app.kumo.beta.data.local.PreferencesManager
+import app.kumo.beta.data.LibraryStore
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
 import app.kumo.beta.ui.components.ContinueWatchingCard
@@ -44,11 +43,10 @@ fun HomeScreen(
     onVoiceSearch: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val prefs = remember { PreferencesManager(context) }
-    val cwManager = remember { ContinueWatchingManager(context) }
+    val libraryStore = remember { LibraryStore(context) }
     val allTitles = remember { DemoData.allTitles }
     val featuredTitle = remember { allTitles.firstOrNull() }
-    val continueWatchingList = remember { cwManager.getAllContinueWatching() }
+    val continueWatchingList = remember { libraryStore.getProgress() }
 
     fun openTitle(title: Title) {
         onNavigateToDetails(title.id)
