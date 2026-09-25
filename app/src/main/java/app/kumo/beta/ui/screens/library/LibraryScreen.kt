@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import app.kumo.beta.data.DemoData
 import app.kumo.beta.data.local.LibraryCategory
 import app.kumo.beta.data.local.LibraryManager
+import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.Title
 import app.kumo.beta.ui.components.PosterCard
 
@@ -52,6 +53,7 @@ fun LibraryScreen(
 ) {
     val context = LocalContext.current
     val libManager = remember { LibraryManager(context) }
+    val settings = remember { SettingsPreferencesStore(context).get() }
 
     var selectedTab by remember { mutableStateOf(0) }
     val categories = LibraryCategory.entries
@@ -155,7 +157,7 @@ fun LibraryScreen(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 110.dp),
+                columns = GridCells.Fixed(settings.itemsPerRow.coerceIn(2, 5)),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(16.dp)
