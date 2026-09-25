@@ -188,6 +188,10 @@ fun SettingsScreen() {
         items(repositories, key = { it.id }) { repo ->
             RepositoryRow(
                 repository = repo,
+                onToggle = {
+                    repositoryManager.setEnabled(repo.id, !repo.enabled)
+                    refreshUi()
+                },
                 onRefresh = {
                     busy = true
                     scope.launch {
@@ -311,13 +315,14 @@ fun SettingsScreen() {
 }
 
 @Composable
-private fun RepositoryRow(repository: Repository, onRefresh: () -> Unit, onRemove: () -> Unit) {
+private fun RepositoryRow(repository: Repository, onToggle: () -> Unit, onRefresh: () -> Unit, onRemove: () -> Unit) {
     Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
         Text(repository.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
         Text(repository.url, color = KumoTextSecondary, fontSize = 12.sp, maxLines = 2)
         repository.lastRefreshStatus?.let { Text("Status: " + it, color = KumoTextSecondary, fontSize = 12.sp) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onRefresh) { Text("Refresh", color = KumoPurple) }
+            TextButton(onClick = onToggle) { Text(if (repository.enabled) "Disable" else "Enable", color = KumoPurple) }
+            TextButton(onClick = onRefresh, enabled = repository.enabled) { Text("Refresh", color = KumoPurple) }
             TextButton(onClick = onRemove) { Text("Remove", color = KumoTextSecondary) }
         }
     }
