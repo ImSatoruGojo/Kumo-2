@@ -1,3 +1,11 @@
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import app.kumo.beta.data.local.SettingsPreferencesStore
+import app.kumo.beta.data.local.AppThemeMode
+import app.kumo.beta.data.local.AccentColorOption
 package app.kumo.beta
 
 import android.os.Bundle
@@ -16,7 +24,29 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            KumoTheme {
+            val settingsStore = remember { SettingsPreferencesStore(this@MainActivity) }
+            var settings by remember { mutableStateOf(settingsStore.get()) }
+            DisposableEffect(settingsStore) {
+                val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+                    settings = settingsStore.get()
+                }
+                settingsStore.registerListener(listener)
+                onDispose { settingsStore.unregisterListener(listener) }
+            }
+            val themeMode = when {
+                settings.amoledMode -> AppThemeMode.AMOLED
+                settings.theme == "Light" -> AppThemeMode.LIGHT
+                settings.theme == "System" -> AppThemeMode.SYSTEM
+                else -> AppThemeMode.DARK
+            }
+            val accent = when (settings.accentColor) {
+                "Orange" -> AccentColorOption.ORANGE
+                "Purple" -> AccentColorOption.PURPLE
+                "Blue" -> AccentColorOption.BLUE
+                "Green" -> AccentColorOption.GREEN
+                else -> AccentColorOption.WHITE
+            }
+            KumoTheme(themeMode = themeMode, accentOption = accent) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = KumoBlack
