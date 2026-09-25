@@ -59,7 +59,7 @@ fun KumoNavGraph() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val showBottomBar = bottomScreens.any { it.route == currentRoute }
+    val showBottomBar = bottomScreens.any { it.route == currentRoute } || currentRoute == "search/filters"
     val providerRegistry = remember { ProviderRegistry().apply { registerProvider(JikanProvider()) } }
     val extensionManager = remember { ExtensionManager(context, providerRegistry) }
     val providerEngine = remember { ProviderEngine(providerRegistry) }
@@ -131,7 +131,7 @@ fun KumoNavGraph() {
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToSearch = { navController.navigate(Screen.Search.route) },
-                    onNavigateToSearchWithFilter = { navController.navigate(Screen.Search.route) },
+                    onNavigateToSearchWithFilter = { navController.navigate("search/filters") },
                     onVoiceSearch = {
                         homeVoiceLauncher.launch(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -152,6 +152,16 @@ fun KumoNavGraph() {
                         navController.navigate(Screen.Details.create(title.id))
                     },
                     initialQuery = initialQuery
+                )
+            }
+            composable("search/filters") {
+                SearchScreen(
+                    providerEngine = providerEngine,
+                    onTitleClick = { title ->
+                        CatalogStore.put(title)
+                        navController.navigate(Screen.Details.create(title.id))
+                    },
+                    openFiltersInitially = true
                 )
             }
             composable(Screen.Library.route) {
