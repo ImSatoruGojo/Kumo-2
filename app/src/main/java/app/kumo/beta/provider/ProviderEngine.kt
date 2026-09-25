@@ -25,6 +25,14 @@ class ProviderEngine(private val registry: ProviderRegistry) {
         }
     }
 
+    suspend fun catalog(section: String, type: MediaType? = null): List<KumoSearchResult> = withContext(Dispatchers.IO) {
+        coroutineScope {
+            registry.getEnabledProviders().filter { type == null || type in it.supportedTypes }.map { provider ->
+                async { withTimeoutOrNull(12_000L) { provider.getCatalog(section) }.orEmpty() }
+            }.awaitAll().flatten().let(::mergeTitles)
+        }
+    }
+
     suspend fun load(title: Title): Title = withContext(Dispatchers.IO) {
         for (provider in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
             runCatching { provider.load(title) }
