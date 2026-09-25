@@ -132,6 +132,7 @@ fun KumoNavGraph() {
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
+                    providerEngine = providerEngine,
                     onNavigateToSearch = { navController.navigate(Screen.Search.route) },
                     onNavigateToSearchWithFilter = { navController.navigate("search/filters") },
                     onVoiceSearch = {
