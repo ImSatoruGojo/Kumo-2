@@ -172,6 +172,24 @@ fun PlayerScreen(
         }
     }
 
+    LaunchedEffect(player, source?.introStartMs, source?.introEndMs, settings.skipOpening) {
+        val currentPlayer = player ?: return@LaunchedEffect
+        val start = source?.introStartMs ?: return@LaunchedEffect
+        val end = source?.introEndMs ?: return@LaunchedEffect
+        if (!settings.skipOpening || end <= start) return@LaunchedEffect
+        var skipped = false
+        while (isActive && !skipped) {
+            delay(250)
+            val position = currentPlayer.currentPosition
+            if (position in start..end) {
+                currentPlayer.seekTo(end)
+                skipped = true
+            } else if (position > end) {
+                skipped = true
+            }
+        }
+    }
+
     DisposableEffect(player, source?.url) {
         val currentPlayer = player ?: return@DisposableEffect onDispose {}
         val listener = object : Player.Listener {
