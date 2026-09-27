@@ -40,11 +40,27 @@ class ProviderEngine(private val registry: ProviderRegistry) {
     }
 
     suspend fun load(title: Title): Title = withContext(Dispatchers.IO) {
-        for (provider in registry.getEnabledProviders().filter { title.type in it.supportedTypes }) {
-            runCatching { provider.load(title) }
+        val providers = registry.getEnabledProviders()
+            .filter { title.type in it.supportedTypes }
+            .filter { title.providerIds.isEmpty() || it.id in title.providerIds }
+
+        for (provider in providers) {
+            val providerTitleId = title.providerTitleIds[provider.id] ?: title.id
+            val scopedTitle = title.copy(id = providerTitleId)
+            runCatching { provider.load(scopedTitle) }
                 .getOrNull()
                 ?.takeIf { it.title.isNotBlank() }
-                ?.let { return@withContext it }
+                ?.let { loaded ->
+                    return@withContext loaded.copy(
+                        id = title.id,
+                        providerIds = title.providerIds.ifEmpty { listOf(provider.id) },
+                        providerTitleIds = if (title.providerTitleIds.isEmpty()) {
+                            mapOf(provider.id to providerTitleId)
+                        } else {
+                            title.providerTitleIds
+                        }
+                    )
+                }
         }
         title
     }
