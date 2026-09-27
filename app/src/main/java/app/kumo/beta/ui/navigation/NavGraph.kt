@@ -93,7 +93,7 @@ fun KumoNavGraph() {
     val extensionManager = remember { ExtensionManager(context, providerRegistry) }
     val providerEngine = remember { ProviderEngine(providerRegistry, providerHealth) }
     val sourceResolver = remember { SourceResolver(providerRegistry, providerHealth) }
-    val chapterResolver = remember { ChapterResolver(providerRegistry) }
+    val chapterResolver = remember { ChapterResolver(providerRegistry, providerHealth) }
     val coroutineScope = rememberCoroutineScope()
     val downloadManager = remember { DownloadManager(context) }
     val homeVoiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
