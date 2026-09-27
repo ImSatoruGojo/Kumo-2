@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import app.kumo.beta.data.local.ReaderProgressStore
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.Chapter
 import app.kumo.beta.model.Title
@@ -28,18 +29,27 @@ fun MangaReaderScreen(
 ) {
     val context = LocalContext.current
     val settings = remember { SettingsPreferencesStore(context).get() }
+    val progressStore = remember { ReaderProgressStore(context) }
     var pages by remember(chapter.id) { mutableStateOf<List<String>>(emptyList()) }
     var loading by remember(chapter.id) { mutableStateOf(true) }
     var error by remember(chapter.id) { mutableStateOf<String?>(null) }
-    var currentPage by remember(chapter.id) { mutableIntStateOf(0) }
+    var loadNonce by remember(chapter.id) { mutableIntStateOf(0) }
+    var currentPage by remember(chapter.id) { mutableIntStateOf(progressStore.getPage(chapter.id)) }
 
-    LaunchedEffect(chapter.id) {
+    LaunchedEffect(chapter.id, loadNonce) {
         loading = true
         error = null
         val resolved = runCatching { chapterResolver.resolve(chapter) }.getOrDefault(emptyList())
         pages = resolved
         loading = false
         if (resolved.isEmpty()) error = "No chapter pages are available from the enabled manga providers"
+    }
+
+    LaunchedEffect(currentPage, pages.size) {
+        if (pages.isNotEmpty()) {
+            currentPage = currentPage.coerceIn(0, pages.lastIndex)
+            progressStore.savePage(chapter.id, currentPage)
+        }
     }
 
     Column(
@@ -75,16 +85,21 @@ fun MangaReaderScreen(
                 CircularProgressIndicator()
             }
 
-            pages.isEmpty() -> Box(
+            pages.isEmpty() -> Column(
                 Modifier
                     .fillMaxSize()
                     .padding(24.dp),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     error ?: "No pages found",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = { loadNonce++ }) {
+                    Text("Retry")
+                }
             }
 
             settings.readingMode.equals("Paged", true) -> {
