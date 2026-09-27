@@ -413,7 +413,7 @@ fun PlayerScreen(
                     DropdownMenu(expanded = speedMenu, onDismissRequest = { speedMenu = false }) {
                         listOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEach { speed ->
                             DropdownMenuItem(
-                                text = { Text("${preferences.playbackSpeed}x".replace("${preferences.playbackSpeed}", speed.toString())) },
+                                text = { Text(speedLabel(speed)) },
                                 onClick = {
                                     player.setPlaybackSpeed(speed)
                                     playbackPreferences.set(preferences.copy(playbackSpeed = speed))
