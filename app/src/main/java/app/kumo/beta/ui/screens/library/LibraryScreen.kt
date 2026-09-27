@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,7 +54,7 @@ fun LibraryScreen(
     val libraryManager = remember { LibraryManager(context) }
     val savedTitleStore = remember { SavedTitleStore(context) }
     val settingsStore = remember { SettingsPreferencesStore(context) }
-    val settings = settingsStore.get()
+    var settings by remember { mutableStateOf(settingsStore.get()) }
     var selectedTab by remember { mutableIntStateOf(0) }
 
     val categories = LibraryCategory.entries
@@ -108,6 +109,7 @@ fun LibraryScreen(
                     else -> "Title A to Z"
                 }
                 settingsStore.setLibrarySortOrder(next)
+                settings = settingsStore.get()
             }) {
                 Text("Sort: " + settings.librarySortOrder)
             }
