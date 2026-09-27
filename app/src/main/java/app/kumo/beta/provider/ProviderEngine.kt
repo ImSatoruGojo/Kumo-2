@@ -113,9 +113,18 @@ class ProviderEngine(private val registry: ProviderRegistry, private val health:
                     }
                     val providerTitleId = title.providerTitleIds[provider.id] ?: title.id
                     val scopedTitle = title.copy(id = providerTitleId)
-                    val loaded = withTimeoutOrNull(12_000L) { provider.load(scopedTitle) } ?: scopedTitle
-                    val episodes = withTimeoutOrNull(12_000L) { provider.getEpisodes(loaded) }.orEmpty()
-                    provider to episodes
+                    val loadedResult = withTimeoutOrNull(12_000L) {
+                        runCatching { provider.load(scopedTitle) }
+                    }
+                    val loaded = loadedResult?.getOrNull() ?: scopedTitle
+                    val episodesResult = withTimeoutOrNull(12_000L) {
+                        runCatching { provider.getEpisodes(loaded) }
+                    }
+                    when {
+                        loadedResult?.isSuccess == true || episodesResult?.isSuccess == true -> health?.markSuccess(provider.id)
+                        else -> health?.markFailure(provider.id)
+                    }
+                    provider to episodesResult?.getOrDefault(emptyList()).orEmpty()
                 }
             }.awaitAll()
         }
