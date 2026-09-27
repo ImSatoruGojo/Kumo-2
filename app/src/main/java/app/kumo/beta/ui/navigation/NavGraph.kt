@@ -29,6 +29,7 @@ import app.kumo.beta.data.local.DownloadManager
 import android.widget.Toast
 import kotlinx.coroutines.launch
 import app.kumo.beta.data.local.SettingsPreferencesStore
+import app.kumo.beta.data.local.SavedTitleStore
 import app.kumo.beta.extension.ExtensionManager
 import app.kumo.beta.provider.JikanProvider
 import app.kumo.beta.provider.ProviderEngine
@@ -63,7 +64,9 @@ val bottomScreens = listOf(Screen.Home, Screen.Search, Screen.Library, Screen.Do
 fun KumoNavGraph() {
     val context = LocalContext.current
     val navController = rememberNavController()
-    val settings = remember { SettingsPreferencesStore(context).get() }
+    val settingsStore = remember { SettingsPreferencesStore(context) }
+    val settings = settingsStore.get()
+    val savedTitleStore = remember { SavedTitleStore(context) }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -149,6 +152,7 @@ fun KumoNavGraph() {
                         })
                     },
                     onTitleClick = { title ->
+                        CatalogStore.put(title)
                         navController.navigate(Screen.Details.create(title.id))
                     }
                 )
@@ -176,7 +180,11 @@ fun KumoNavGraph() {
                 )
             }
             composable(Screen.Library.route) {
-                LibraryScreen()
+                LibraryScreen(
+                    onNavigateToDetails = { id ->
+                        navController.navigate(Screen.Details.create(id))
+                    }
+                )
             }
             composable(Screen.Downloads.route) {
                 DownloadsScreen()
@@ -189,7 +197,7 @@ fun KumoNavGraph() {
                 arguments = listOf(navArgument("titleId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val titleId = backStackEntry.arguments?.getString("titleId") ?: return@composable
-                val title = CatalogStore.get(titleId)
+                val title = CatalogStore.get(titleId) ?: savedTitleStore.get(titleId)?.also(CatalogStore::put)
                 if (title != null) {
                     var loadedTitle by remember(titleId) { mutableStateOf(title) }
                     LaunchedEffect(titleId) {
