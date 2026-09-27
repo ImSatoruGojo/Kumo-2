@@ -46,6 +46,7 @@ fun DetailsScreen(
     title: Title,
     onBack: () -> Unit,
     onEpisodeClick: (app.kumo.beta.model.Episode) -> Unit = {},
+    onChapterClick: (app.kumo.beta.model.Chapter) -> Unit = {},
     onDownloadEpisode: (app.kumo.beta.model.Episode) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -424,21 +425,19 @@ fun DetailsScreen(
                 }
             } else if (title.chapters.isNotEmpty()) {
                 Text(
-                    text = "Chapters (${title.chapters.size})",
+                    text = "Chapters (" + title.chapters.size + ")",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                var activeChapterToRead by remember { mutableStateOf<app.kumo.beta.model.Chapter?>(null) }
-
                 title.chapters.forEach { ch ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .clickable { activeChapterToRead = ch },
+                            .clickable { onChapterClick(ch) },
                         shape = RoundedCornerShape(8.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
@@ -456,66 +455,22 @@ fun DetailsScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = ch.title ?: "Chapter ${ch.number}",
+                                    text = ch.title ?: "Chapter " + ch.number,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
-                                Text(text = "Chapter ${ch.number}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    text = "Chapter " + ch.number,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
                 }
-
-                activeChapterToRead?.let { ch ->
-                    var readingMode by remember { mutableStateOf("Webtoon (Vertical)") }
-
-                    AlertDialog(
-                        onDismissRequest = { activeChapterToRead = null },
-                        title = { Text("Reading ${title.title} - ${ch.title ?: "Chapter ${ch.number}"}") },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(220.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.DarkGray),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
-                                            imageVector = Icons.Default.Bookmark,
-                                            contentDescription = "Manga Page",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                        Text("Page 1 / 42 • Mode: $readingMode", color = Color.White, fontSize = 12.sp)
-                                    }
-                                }
-
-                                Text("Reading Mode Selection", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    listOf("Webtoon", "RTL Single", "LTR Single", "Continuous").forEach { mode ->
-                                        FilterChip(
-                                            selected = readingMode == mode,
-                                            onClick = { readingMode = mode },
-                                            label = { Text(mode, fontSize = 11.sp) }
-                                        )
-                                    }
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            Button(onClick = { activeChapterToRead = null }) {
-                                Text("Close Reader")
-                            }
-                        }
-                    )
-                }
             }
         }
     }
-
     pendingDownload?.let { episode ->
         AlertDialog(
             onDismissRequest = { pendingDownload = null },
