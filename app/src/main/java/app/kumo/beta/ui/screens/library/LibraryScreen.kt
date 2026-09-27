@@ -56,13 +56,9 @@ fun LibraryScreen(
 
     val categories = LibraryCategory.entries
     val currentCategory = categories.getOrNull(selectedTab) ?: LibraryCategory.FAVORITES
-    val titleIds = remember(selectedTab) {
-        libraryManager.getTitlesInCategory(currentCategory).toList()
-    }
-    val titlesInCategory = remember(titleIds, savedTitleStore) {
-        titleIds.mapNotNull { id ->
-            CatalogStore.get(id) ?: savedTitleStore.get(id)?.also(CatalogStore::put)
-        }
+    val titleIds = libraryManager.getTitlesInCategory(currentCategory).toList()
+    val titlesInCategory = titleIds.mapNotNull { id ->
+        CatalogStore.get(id) ?: savedTitleStore.get(id)?.also(CatalogStore::put)
     }
 
     Column(
