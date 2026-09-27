@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.kumo.beta.data.local.CacheManager
 import app.kumo.beta.data.local.StorageLocationManager
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.repository.ExtensionInfo
@@ -33,6 +34,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
     val repositoryManager = remember { RepositoryManager(context) }
     val extensionInstaller = remember { ExtensionInstaller(context) }
     val storageManager = remember { StorageLocationManager(context) }
+    val cacheManager = remember { CacheManager(context) }
     val settingsStore = remember { SettingsPreferencesStore(context) }
     var settings by remember { mutableStateOf(settingsStore.get()) }
 
@@ -106,7 +108,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
             SettingsGroup("General") {
                 ChoiceItem("Theme", settings.theme, listOf("Dark", "Light", "System")) { settingsStore.setTheme(it); settings = settingsStore.get() }
                 ChoiceItem("App language", settings.appLanguage, listOf("System", "English")) { settingsStore.setLanguage(it); settings = settingsStore.get() }
-                ChoiceItem("Cache limit", "${settings.cacheLimitMb} MB", listOf("256 MB", "512 MB", "1024 MB", "2048 MB")) { settingsStore.setCacheLimitMb(it.removeSuffix(" MB").toInt()); settings = settingsStore.get() }
+                ChoiceItem("Cache limit", "${settings.cacheLimitMb} MB", listOf("256 MB", "512 MB", "1024 MB", "2048 MB")) { settingsStore.setCacheLimitMb(it.removeSuffix(" MB").toInt()); cacheManager.trimToLimit(settingsStore.get().cacheLimitMb); settings = settingsStore.get() }
                 SwitchItem("Reduce animations", "Useful on lower end devices", settings.reduceAnimations) { settingsStore.setReduceAnimations(it); settings = settingsStore.get() }
             }
         }
