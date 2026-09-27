@@ -147,6 +147,9 @@ class ProviderEngine(private val registry: ProviderRegistry, private val health:
             ?: title
 
         bestLoaded.copy(
+            id = title.id,
+            providerIds = title.providerIds.ifEmpty { listOf(loadedTitles.maxByOrNull { score(it.first) }?.first?.id ?: bestLoaded.id) },
+            providerTitleIds = title.providerTitleIds,
             episodes = if (mergedEpisodes.isNotEmpty()) mergedEpisodes else bestLoaded.episodes
         )
     }
