@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.data.CatalogStore
 import app.kumo.beta.data.LibraryStore
+import app.kumo.beta.data.local.SavedTitleStore
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
@@ -55,6 +55,7 @@ fun HomeScreen(
     val libraryStore = remember { LibraryStore(context) }
     val settingsStore = remember { SettingsPreferencesStore(context) }
     val settings = settingsStore.get()
+    val savedTitleStore = remember { SavedTitleStore(context) }
     val continueWatchingList = remember { libraryStore.getContinueWatching() }
 
     var popularTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
@@ -256,7 +257,8 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(continueWatchingList, key = { it.contentId + "|" + it.episodeId }) { prog ->
-                    CatalogStoreLookup(context = context, contentId = prog.contentId) { item ->
+                    val item = CatalogStore.get(prog.contentId) ?: savedTitleStore.get(prog.contentId)?.also(CatalogStore::put)
+                    if (item != null) {
                         val epNum = prog.episodeId.substringAfterLast(":").toIntOrNull()
                             ?: prog.episodeId.substringAfterLast("-").toIntOrNull()
                             ?: 1
@@ -347,14 +349,4 @@ private fun SectionTitle(text: String) {
         color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     )
-}
-
-@Composable
-private fun CatalogStoreLookup(
-    context: android.content.Context,
-    contentId: String,
-    content: @Composable (Title) -> Unit
-) {
-    val title = app.kumo.beta.data.CatalogStore.get(contentId)
-    if (title != null) content(title)
 }
