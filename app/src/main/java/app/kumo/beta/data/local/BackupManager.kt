@@ -13,7 +13,7 @@ class BackupManager(context: Context) {
         "kumo_downloads",
         "kumo_repositories",
         "kumo_provider_health",
-        "kumo_search_history"
+        "kumo_saved_titles"
     )
 
     fun exportTo(uri: Uri): Result<Unit> = runCatching {
