@@ -166,6 +166,15 @@ fun KumoNavGraph() {
                             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                         })
                     },
+                    onContinueWatching = { contentId, episodeId ->
+                        val title = CatalogStore.get(contentId) ?: savedTitleStore.get(contentId)?.also(CatalogStore::put)
+                        val target = title?.episodes?.firstOrNull { it.id == episodeId }
+                        if (target != null) {
+                            navController.navigate("player/" + contentId + "/" + episodeId)
+                        } else {
+                            navController.navigate(Screen.Details.create(contentId))
+                        }
+                    },
                     onTitleClick = { title ->
                         CatalogStore.put(title)
                         navController.navigate(Screen.Details.create(title.id))
