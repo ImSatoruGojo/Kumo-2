@@ -17,7 +17,9 @@ class SourceResolver(private val registry: ProviderRegistry, private val health:
         val providers = registry.getEnabledProviders()
         if (providers.isEmpty()) return@withContext emptyList()
 
-        val matchingProviders = providers.filter { episode.providerIds.isEmpty() || it.id in episode.providerIds }
+        val matchingProviders = if (episode.providerIds.isEmpty()) providers else {
+            providers.sortedByDescending { if (it.id in episode.providerIds) 1 else 0 }
+        }
         val selectedProviders = (if (allowFallback) matchingProviders else matchingProviders.take(1))
             .filter { health?.canTry(it.id) != false }
 
