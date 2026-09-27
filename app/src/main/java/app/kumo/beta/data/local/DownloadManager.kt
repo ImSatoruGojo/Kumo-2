@@ -187,6 +187,24 @@ class DownloadManager(context: Context) {
         }
     }
 
+    fun reconcile() {
+        val reconciled = getDownloads().map { item ->
+            if (item.status == DownloadStatus.COMPLETED && !item.fileUri.isNullOrBlank()) {
+                val exists = runCatching {
+                    appContext.contentResolver.query(Uri.parse(item.fileUri), arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID), null, null, null)
+                        ?.use { it.moveToFirst() } == true
+                }.getOrDefault(false)
+                if (exists) item else item.copy(
+                    status = DownloadStatus.FAILED,
+                    error = "Downloaded file is no longer available",
+                    speed = "0 KB/s",
+                    eta = "Missing"
+                )
+            } else item
+        }
+        saveDownloads(reconciled)
+    }
+
     suspend fun retryDownload(id: String): Result<DownloadItem> {
         val item = getDownloads().firstOrNull { it.id == id }
             ?: return Result.failure(IllegalArgumentException("Download not found"))
