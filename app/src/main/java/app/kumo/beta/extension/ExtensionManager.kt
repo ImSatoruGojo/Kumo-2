@@ -34,6 +34,11 @@ class ExtensionManager(
                 }
             }
 
+    fun reloadAll(): List<ExtensionRuntime.RuntimeInfo> {
+        unloadAll()
+        return loadInstalled()
+    }
+
     fun unloadAll() {
         runtime.loadedExtensions().toList().forEach { extension ->
             store.load().firstOrNull { it.id == extension.id }?.let { runtime.unload(File(it.filePath)) }
