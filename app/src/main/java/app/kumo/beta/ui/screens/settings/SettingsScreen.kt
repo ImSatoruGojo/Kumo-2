@@ -38,6 +38,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
     val storageManager = remember { StorageLocationManager(context) }
     val cacheManager = remember { CacheManager(context) }
     val backupManager = remember { BackupManager(context) }
+    val libraryStore = remember { app.kumo.beta.data.LibraryStore(context) }
     val settingsStore = remember { SettingsPreferencesStore(context) }
     var settings by remember { mutableStateOf(settingsStore.get()) }
 
@@ -388,6 +389,15 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
                     }) {
                         Text("Clear", color = MaterialTheme.colorScheme.error)
                     }
+                }
+                TextButton(
+                    onClick = {
+                        libraryStore.clearHistory()
+                        status = "Playback history cleared"
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                ) {
+                    Text("Clear playback history", color = MaterialTheme.colorScheme.error)
                 }
             }
         }
