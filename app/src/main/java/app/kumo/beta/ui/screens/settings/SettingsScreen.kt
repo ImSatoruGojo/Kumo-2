@@ -334,9 +334,30 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
 
         item {
             SettingsGroup("History") {
-                ChoiceItem("History size", settings.historySize.toString(), listOf("20", "50", "100", "200")) { settingsStore.setHistorySize(it.toInt()); settings = settingsStore.get() }
+                ChoiceItem("History size", settings.historySize.toString(), listOf("20", "50", "100", "200")) {
+                    settingsStore.setHistorySize(it.toInt())
+                    settings = settingsStore.get()
+                }
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Search history", color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
+                        Text("Remove saved search terms", color = KumoTextSecondary, fontSize = 12.sp)
+                    }
+                    TextButton(onClick = {
+                        settingsStore.clearSearchHistory()
+                        status = "Search history cleared"
+                    }) {
+                        Text("Clear", color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
+
 
         item {
             var showResetDialog by remember { mutableStateOf(false) }
