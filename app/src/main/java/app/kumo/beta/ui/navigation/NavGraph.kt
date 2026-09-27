@@ -42,6 +42,7 @@ import app.kumo.beta.ui.screens.library.LibraryScreen
 import app.kumo.beta.ui.screens.search.SearchScreen
 import app.kumo.beta.ui.screens.settings.SettingsScreen
 import app.kumo.beta.ui.screens.player.PlayerScreen
+import app.kumo.beta.ui.screens.player.OfflinePlayerScreen
 import app.kumo.beta.ui.theme.KumoBlack
 import app.kumo.beta.ui.theme.KumoPurple
 import app.kumo.beta.ui.theme.KumoSurface
@@ -187,7 +188,11 @@ fun KumoNavGraph() {
                 )
             }
             composable(Screen.Downloads.route) {
-                DownloadsScreen()
+                DownloadsScreen(
+                    onPlay = { item ->
+                        navController.navigate("offlinePlayer/" + item.id)
+                    }
+                )
             }
             composable(Screen.Settings.route) {
                 SettingsScreen()
@@ -222,12 +227,28 @@ fun KumoNavGraph() {
                                         episodeTitle = episode.title ?: "Episode " + episode.number,
                                         coverUrl = title.posterUrl.orEmpty(),
                                         quality = source.quality?.let { it.toString() + "p" } ?: "Auto",
-                                        sourceUrl = source.url
+                                        sourceUrl = source.url,
+                                        headers = source.headers,
+                                        referer = source.referer,
+                                        mimeType = source.mimeType
                                     )
                                     Toast.makeText(context, result.fold({ "Download complete" }, { it.message ?: "Download failed" }), Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
+                    )
+                }
+            }
+            composable(
+                route = "offlinePlayer/{downloadId}",
+                arguments = listOf(navArgument("downloadId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val downloadId = backStackEntry.arguments?.getString("downloadId") ?: return@composable
+                val item = downloadManager.getDownloads().firstOrNull { it.id == downloadId }
+                if (item != null && item.fileUri != null) {
+                    OfflinePlayerScreen(
+                        item = item,
+                        onBack = { navController.popBackStack() }
                     )
                 }
             }
