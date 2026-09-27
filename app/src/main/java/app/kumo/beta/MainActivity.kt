@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import app.kumo.beta.data.local.CacheManager
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.data.local.AppThemeMode
 import app.kumo.beta.data.local.AccentColorOption
@@ -26,6 +27,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settingsStore = remember { SettingsPreferencesStore(this@MainActivity) }
             var settings by remember { mutableStateOf(settingsStore.get()) }
+            val cacheManager = remember { CacheManager(this@MainActivity) }
+            androidx.compose.runtime.LaunchedEffect(settings.cacheLimitMb) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    cacheManager.trimToLimit(settings.cacheLimitMb)
+                }
+            }
             DisposableEffect(settingsStore) {
                 val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
                     settings = settingsStore.get()
