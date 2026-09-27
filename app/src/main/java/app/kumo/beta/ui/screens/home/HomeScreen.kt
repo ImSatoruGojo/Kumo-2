@@ -49,6 +49,7 @@ fun HomeScreen(
     onNavigateToSearchWithFilter: () -> Unit = {},
     onTitleClick: (Title) -> Unit = {},
     onVoiceSearch: () -> Unit = {},
+    onContinueWatching: (String, String) -> Unit = { _, _ -> },
     providerEngine: ProviderEngine? = null
 ) {
     val context = LocalContext.current
@@ -305,7 +306,7 @@ fun HomeScreen(
                         } else {
                             0.5f
                         }
-                        ContinueWatchingCard(item, epNum, percent) { openTitle(item) }
+                        ContinueWatchingCard(item, epNum, percent) { onContinueWatching(prog.contentId, prog.episodeId) }
                     }
                 }
             }
