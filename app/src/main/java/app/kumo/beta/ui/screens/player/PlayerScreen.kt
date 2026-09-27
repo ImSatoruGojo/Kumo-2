@@ -42,6 +42,7 @@ import app.kumo.beta.ui.theme.KumoBlack
 import app.kumo.beta.ui.theme.KumoPurple
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 @OptIn(UnstableApi::class)
