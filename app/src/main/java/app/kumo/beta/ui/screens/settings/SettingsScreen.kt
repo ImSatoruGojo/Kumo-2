@@ -86,7 +86,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
     fun refreshUi() {
         repositories = repositoryManager.getRepositories()
         val installed = extensionInstaller.installed()
-        val available = repositoryManager.getAllExtensions().filter { settings.showAdultContent || !it.nsfw }
+        val available = repositoryManager.getAllExtensions().filter { !it.nsfw }
         val fromInstalled = installed
             .filter { installedExtension -> available.none { it.id == installedExtension.id } }
             .map { installedExtension ->
@@ -203,20 +203,6 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
             SettingsGroup("Downloads") {
                 SwitchItem("Wi Fi only", "Only start downloads on unmetered Wi Fi", settings.wifiOnlyDownloads) { settingsStore.setWifiOnlyDownloads(it); settings = settingsStore.get() }
                 SwitchItem("Confirm downloads", "Ask before starting a download", settings.confirmDownloads) { settingsStore.setConfirmDownloads(it); settings = settingsStore.get() }
-            }
-        }
-
-        item {
-            SettingsGroup("Content") {
-                SwitchItem(
-                    "Show adult extensions",
-                    "Allow extensions marked as adult content to appear in the extension list",
-                    settings.showAdultContent
-                ) {
-                    settingsStore.setShowAdultContent(it)
-                    settings = settingsStore.get()
-                    refreshUi()
-                }
             }
         }
 
