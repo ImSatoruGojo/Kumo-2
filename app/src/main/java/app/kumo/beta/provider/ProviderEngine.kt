@@ -16,7 +16,9 @@ class ProviderEngine(private val registry: ProviderRegistry) {
                 .filter { type == null || type in it.supportedTypes }
                 .map { provider ->
                     async {
-                        withTimeoutOrNull(12_000L) { provider.search(query) }.orEmpty()
+                        withTimeoutOrNull(12_000L) {
+                            if (type == null) provider.search(query) else provider.search(query, type)
+                        }.orEmpty()
                     }
                 }
                 .awaitAll()
@@ -28,7 +30,11 @@ class ProviderEngine(private val registry: ProviderRegistry) {
     suspend fun catalog(section: String, type: MediaType? = null): List<KumoSearchResult> = withContext(Dispatchers.IO) {
         coroutineScope {
             registry.getEnabledProviders().filter { type == null || type in it.supportedTypes }.map { provider ->
-                async { withTimeoutOrNull(12_000L) { provider.getCatalog(section) }.orEmpty() }
+                async {
+                    withTimeoutOrNull(12_000L) {
+                        if (type == null) provider.getCatalog(section) else provider.getCatalog(section, type)
+                    }.orEmpty()
+                }
             }.awaitAll().flatten().let(::mergeTitles)
         }
     }
