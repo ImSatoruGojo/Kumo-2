@@ -24,12 +24,17 @@ class LibraryManager(context: Context) {
     }
 
     fun setCategoryForTitle(titleId: String, category: LibraryCategory?) {
+        val editor = prefs.edit()
         if (category == null) {
-            prefs.edit().remove("cat_$titleId").apply()
+            editor.remove("cat_$titleId")
         } else {
-            prefs.edit().putString("cat_$titleId", category.name).apply()
+            editor.putString("cat_$titleId", category.name)
+                .putLong("added_$titleId", System.currentTimeMillis())
         }
+        editor.apply()
     }
+
+    fun addedAt(titleId: String): Long = prefs.getLong("added_$titleId", 0L)
 
     fun getTitlesInCategory(category: LibraryCategory): Set<String> {
         val result = mutableSetOf<String>()
@@ -55,6 +60,9 @@ class LibraryManager(context: Context) {
 
     fun setFavorite(titleId: String, isFav: Boolean) {
         prefs.edit().putBoolean("fav_$titleId", isFav).apply()
+        if (isFav && !prefs.contains("added_$titleId")) {
+            prefs.edit().putLong("added_$titleId", System.currentTimeMillis()).apply()
+        }
     }
 
     fun getCustomTags(titleId: String): List<String> {
