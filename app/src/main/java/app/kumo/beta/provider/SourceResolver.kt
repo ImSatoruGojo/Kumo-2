@@ -8,7 +8,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
-class SourceResolver(private val registry: ProviderRegistry) {
+class SourceResolver(private val registry: ProviderRegistry, private val health: ProviderHealthStore? = null) {
 
     suspend fun resolve(
         episode: Episode,
@@ -18,17 +18,34 @@ class SourceResolver(private val registry: ProviderRegistry) {
         if (providers.isEmpty()) return@withContext emptyList()
 
         val matchingProviders = providers.filter { episode.providerIds.isEmpty() || it.id in episode.providerIds }
-        val selectedProviders = if (allowFallback) matchingProviders else matchingProviders.take(1)
+        val selectedProviders = (if (allowFallback) matchingProviders else matchingProviders.take(1))
+            .filter { health?.canTry(it.id) != false }
 
         val rawSources = coroutineScope {
-            selectedProviders.flatMap { provider ->
-                val sources = withTimeoutOrNull(12_000L) {
+            selectedProviders.map { provider ->
+                async {
                     val providerEpisodeId = episode.providerEpisodeIds[provider.id] ?: episode.id
-                    runCatching { provider.getSources(episode.copy(id = providerEpisodeId)) }.getOrDefault(emptyList())
-                }.orEmpty()
+                    val result = withTimeoutOrNull(12_000L) {
+                        runCatching { provider.getSources(episode.copy(id = providerEpisodeId)) }
+                    }
+                    when {
+                        result == null -> {
+                            health?.markFailure(provider.id)
+                            provider to emptyList<KumoStreamSource>()
+                        }
+                        result.isSuccess -> {
+                            health?.markSuccess(provider.id)
+                            provider to result.getOrDefault(emptyList())
+                        }
+                        else -> {
+                            health?.markFailure(provider.id)
+                            provider to emptyList()
+                        }
+                    }
+                }
+            }.awaitAll().flatMap { (provider, sources) ->
                 sources.map { source ->
-                    val providerId = source.providerId.ifBlank { provider.id }
-                    source.copy(providerId = providerId)
+                    source.copy(providerId = source.providerId.ifBlank { provider.id })
                 }
             }
         }
