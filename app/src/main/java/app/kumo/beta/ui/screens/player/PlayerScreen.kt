@@ -62,7 +62,7 @@ fun PlayerScreen(
     val settings = settingsStore.get()
     val effectiveAudio = when (mediaType) {
         MediaType.ANIME -> settings.animeLanguage
-        MediaType.MOVIE, MediaType.TV_SHOW, MediaType.CARTOON -> settings.movieLanguage
+        MediaType.MOVIE, MediaType.SHOW, MediaType.CARTOON -> settings.movieLanguage
         else -> settings.defaultAudio
     }.let { if (it == "Auto") settings.defaultAudio else it }
 
