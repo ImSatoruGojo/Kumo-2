@@ -1,5 +1,8 @@
 package app.kumo.beta.ui.screens.player
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.view.GestureDetector
@@ -44,7 +47,8 @@ fun PlayerScreen(
     contentId: String,
     episode: Episode,
     sourceResolver: SourceResolver,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEpisodeEnded: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val libraryStore = remember { LibraryStore(context) }
@@ -66,6 +70,19 @@ fun PlayerScreen(
         preferredAudio = settings.defaultAudio.takeIf { it != "Auto" },
         preferredSubtitle = settings.defaultSubtitle.takeIf { it != "Auto" }
     )
+    DisposableEffect(settings.screenRotation) {
+        val activity = context as? Activity
+        val previous = activity?.requestedOrientation ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        activity?.requestedOrientation = when (settings.screenRotation) {
+            "Portrait" -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            "Landscape" -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+        onDispose {
+            activity?.requestedOrientation = previous
+        }
+    }
+
     DisposableEffect(settings.keepScreenOn) {
         val activity = context as? android.app.Activity
         if (settings.keepScreenOn) {
@@ -157,6 +174,12 @@ fun PlayerScreen(
                     selected = fallback
                 } else {
                     error = playbackException.message ?: "Playback failed"
+                }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED && settings.autoplayNext) {
+                    onEpisodeEnded()
                 }
             }
         }
@@ -261,11 +284,41 @@ fun PlayerScreen(
                                         player.seekTo((player.currentPosition - delta).coerceAtLeast(0L))
                                     } else {
                                         val target = player.currentPosition + delta
-                                    player.seekTo(
+                                        player.seekTo(
                                             target.coerceAtMost(
                                                 player.duration.takeIf { it > 0L } ?: target
                                             )
                                         )
+                                    }
+                                    return true
+                                }
+
+                                override fun onScroll(
+                                    e1: MotionEvent?,
+                                    e2: MotionEvent,
+                                    distanceX: Float,
+                                    distanceY: Float
+                                ): Boolean {
+                                    if (locked || e1 == null) return false
+                                    if (kotlin.math.abs(distanceY) <= kotlin.math.abs(distanceX)) return false
+                                    val ratio = (-distanceY / height.coerceAtLeast(1)).coerceIn(-0.12f, 0.12f)
+                                    val isLeftSide = e1.x < width / 2f
+                                    if (isLeftSide && settings.gestureBrightness) {
+                                        val activity = ctx as? Activity
+                                        if (activity != null) {
+                                            val params = activity.window.attributes
+                                            val current = if (params.screenBrightness in 0.01f..1f) params.screenBrightness else 0.5f
+                                            params.screenBrightness = (current + ratio).coerceIn(0.02f, 1f)
+                                            activity.window.attributes = params
+                                        }
+                                    } else if (!isLeftSide && settings.gestureVolume) {
+                                        val audio = ctx.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+                                        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                                        val current = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                        val next = (current + (ratio * max)).toInt().coerceIn(0, max)
+                                        audio.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
+                                    } else {
+                                        return false
                                     }
                                     return true
                                 }
