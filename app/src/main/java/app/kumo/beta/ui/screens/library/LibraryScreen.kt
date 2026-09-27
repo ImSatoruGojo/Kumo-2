@@ -64,7 +64,7 @@ fun LibraryScreen(
         CatalogStore.get(id) ?: savedTitleStore.get(id)?.also(CatalogStore::put)
     }.let { titles ->
         when (settings.librarySortOrder) {
-            "Recently added" -> titles.sortedByDescending { it.id }
+            "Recently added" -> titles.sortedByDescending { libraryManager.addedAt(it.id) }
             "Rating" -> titles.sortedByDescending { it.rating ?: -1f }
             "Year" -> titles.sortedByDescending { it.year ?: 0 }
             else -> titles.sortedBy { it.title.lowercase() }
