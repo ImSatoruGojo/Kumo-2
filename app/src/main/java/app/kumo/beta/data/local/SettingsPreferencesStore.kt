@@ -141,6 +141,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
     fun setNetworkTimeout(v: Int) = prefs.edit().putInt("network_timeout", v).apply()
     fun setReadingMode(v: String) = prefs.edit().putString("reading_mode", v).apply()
     fun setReadingDirection(v: String) = prefs.edit().putString("reading_direction", v).apply()
+    fun clearSearchHistory() = prefs.edit().remove("search_history_list").apply()
 
     fun registerListener(listener: android.content.SharedPreferences.OnSharedPreferenceChangeListener) {
         prefs.registerOnSharedPreferenceChangeListener(listener)
