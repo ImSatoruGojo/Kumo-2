@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.kumo.beta.data.local.BackupManager
 import app.kumo.beta.data.local.CacheManager
 import app.kumo.beta.data.local.StorageLocationManager
 import app.kumo.beta.data.local.SettingsPreferencesStore
@@ -35,6 +36,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
     val extensionInstaller = remember { ExtensionInstaller(context) }
     val storageManager = remember { StorageLocationManager(context) }
     val cacheManager = remember { CacheManager(context) }
+    val backupManager = remember { BackupManager(context) }
     val settingsStore = remember { SettingsPreferencesStore(context) }
     var settings by remember { mutableStateOf(settingsStore.get()) }
 
@@ -44,6 +46,31 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var storageName by remember { mutableStateOf(storageManager.displayName()) }
+
+    val createBackup = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            status = backupManager.exportTo(uri).fold(
+                { "Backup exported" },
+                { "Backup failed: " + (it.message ?: "Unknown error") }
+            )
+        }
+    }
+    val importBackup = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            status = backupManager.importFrom(uri).fold(
+                {
+                    settings = settingsStore.get()
+                    refreshUi()
+                    "Backup imported"
+                },
+                { "Backup import failed: " + (it.message ?: "Unknown error") }
+            )
+        }
+    }
 
     val folderPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -334,6 +361,33 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
                     },
                     dismissButton = { TextButton(onClick = { showResetDialog = false }) { Text("Cancel") } }
                 )
+            }
+        }
+
+
+        item {
+            SettingsGroup("Backup & Restore") {
+                Text(
+                    "Back up settings, library, playback progress, repositories and download records. Installed extension files are not copied.",
+                    color = KumoTextSecondary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(onClick = { createBackup.launch(BackupManager.FILE_NAME) }) {
+                        Text("Export")
+                    }
+                    OutlinedButton(onClick = {
+                        importBackup.launch(arrayOf("application/json", "text/json", "text/plain"))
+                    }) {
+                        Text("Import")
+                    }
+                }
             }
         }
 
