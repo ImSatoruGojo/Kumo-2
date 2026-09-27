@@ -187,6 +187,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
                 SwitchItem("Skip opening", "Skip when supported by the source", settings.skipOpening) { settingsStore.setSkipOpening(it); settings = settingsStore.get() }
                 ChoiceItem("Default audio", settings.defaultAudio, listOf("Auto", "Dub", "Sub")) { settingsStore.setAudio(it); settings = settingsStore.get() }
                 ChoiceItem("Default subtitles", settings.defaultSubtitle, listOf("Auto", "On", "Off")) { settingsStore.setSubtitle(it); settings = settingsStore.get() }
+                ChoiceItem("Subtitle language", settings.subtitleLanguage, listOf("English", "Japanese", "Hindi", "Auto")) { settingsStore.setSubtitleLanguage(it); settings = settingsStore.get() }
                 ChoiceItem("Anime language", settings.animeLanguage, listOf("Dub", "Sub", "Auto")) { settingsStore.setAnimeLanguage(it); settings = settingsStore.get() }
                 ChoiceItem("Movie language", settings.movieLanguage, listOf("Dub", "Sub", "Auto")) { settingsStore.setMovieLanguage(it); settings = settingsStore.get() }
             }
