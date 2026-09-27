@@ -278,8 +278,35 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
 
         if (extensions.isNotEmpty()) {
             item {
-                Text("Available extensions", color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
-                Text("Install, enable, disable or remove installed extensions", color = KumoTextSecondary, fontSize = 12.sp)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Available extensions", color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Install, enable, disable or remove installed extensions", color = KumoTextSecondary, fontSize = 12.sp)
+                    }
+                    TextButton(
+                        enabled = !busy,
+                        onClick = {
+                            busy = true
+                            scope.launch {
+                                var updated = 0
+                                extensions.filter { it.installed }.forEach { extension ->
+                                    val installed = extensionInstaller.installed().firstOrNull { it.id == extension.id }
+                                    if (installed != null && isExtensionUpdateAvailable(extension, installed)) {
+                                        extensionInstaller.install(extension).onSuccess { updated++ }
+                                    }
+                                }
+                                refreshUi()
+                                busy = false
+                                status = if (updated == 0) "All installed extensions are up to date" else "Updated " + updated + " extensions"
+                            }
+                        }
+                    ) {
+                        Text("Update all")
+                    }
+                }
             }
             items(extensions, key = { it.id }) { extension ->
                 ExtensionRow(extension, extensionInstaller, { refreshUi() }, { status = it })
@@ -544,6 +571,10 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(vertical = 4.dp), content = content)
 }
 
+private fun isExtensionUpdateAvailable(extension: ExtensionInfo, installed: app.kumo.beta.repository.InstalledExtension): Boolean {
+    return (extension.versionCode != null && installed.versionCode != null && extension.versionCode > installed.versionCode) ||
+        compareVersions(extension.version, installed.version) > 0
+}
 private fun compareVersions(left: String?, right: String?): Int {
     val a = left.orEmpty().split(Regex("[^0-9]+")).filter { it.isNotBlank() }.mapNotNull { it.toIntOrNull() }
     val b = right.orEmpty().split(Regex("[^0-9]+")).filter { it.isNotBlank() }.mapNotNull { it.toIntOrNull() }
