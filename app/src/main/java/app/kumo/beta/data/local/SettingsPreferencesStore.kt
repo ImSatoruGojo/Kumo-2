@@ -23,6 +23,7 @@ data class SettingsPreferences(
     val accentColor: String = "White",
     val startupPage: String = "Home",
     val rememberLastScreen: Boolean = true,
+    val lastScreen: String = "",
     val dataSaving: Boolean = false,
     val showPopular: Boolean = true,
     val showTrending: Boolean = true,
@@ -71,6 +72,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
         accentColor = prefs.getString("accent_color", "White") ?: "White",
         startupPage = prefs.getString("startup_page", "Home") ?: "Home",
         rememberLastScreen = prefs.getBoolean("remember_last_screen", true),
+        lastScreen = prefs.getString("last_screen", "") ?: "",
         dataSaving = prefs.getBoolean("data_saving", false),
         showPopular = prefs.getBoolean("show_popular", true),
         showTrending = prefs.getBoolean("show_trending", true),
@@ -115,6 +117,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
     fun setAccentColor(v: String) = prefs.edit().putString("accent_color", v).apply()
     fun setStartupPage(v: String) = prefs.edit().putString("startup_page", v).apply()
     fun setRememberLastScreen(v: Boolean) = prefs.edit().putBoolean("remember_last_screen", v).apply()
+    fun setLastScreen(v: String) = prefs.edit().putString("last_screen", v).apply()
     fun setDataSaving(v: Boolean) = prefs.edit().putBoolean("data_saving", v).apply()
     fun setShowPopular(v: Boolean) = prefs.edit().putBoolean("show_popular", v).apply()
     fun setShowTrending(v: Boolean) = prefs.edit().putBoolean("show_trending", v).apply()
