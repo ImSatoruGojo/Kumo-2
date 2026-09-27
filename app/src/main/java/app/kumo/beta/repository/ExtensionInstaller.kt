@@ -53,6 +53,7 @@ class ExtensionInstaller(context: Context) {
             if (finalFile.exists()) finalFile.delete()
             check(temp.renameTo(finalFile)) { "Unable to install extension file" }
 
+            val wasEnabled = store.load().firstOrNull { it.id == extension.id }?.enabled ?: true
             store.upsert(
                 InstalledExtension(
                     id = extension.id,
@@ -60,7 +61,7 @@ class ExtensionInstaller(context: Context) {
                     filePath = finalFile.absolutePath,
                     version = extension.version,
                     versionCode = extension.versionCode,
-                    enabled = true
+                    enabled = wasEnabled
                 )
             )
             finalFile
