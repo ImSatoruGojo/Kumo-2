@@ -11,7 +11,9 @@ class BackupManager(context: Context) {
         "kumo_settings",
         "kumo_library",
         "kumo_downloads",
+        "kumo_library_prefs",
         "kumo_repositories",
+        "kumo_continue_watching_prefs",
         "kumo_provider_health",
         "kumo_saved_titles"
     )
