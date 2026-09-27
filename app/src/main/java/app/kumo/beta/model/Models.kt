@@ -57,6 +57,7 @@ data class Episode(
     val id: String,
     val number: Int,
     val title: String? = null,
+    val seasonNumber: Int? = null,
     val description: String? = null,
     val thumbnailUrl: String? = null,
     val durationMs: Long? = null,
