@@ -192,6 +192,7 @@ class DownloadManager(context: Context) {
             ?: return Result.failure(IllegalArgumentException("Download not found"))
         val sourceUrl = item.sourceUrl
             ?: return Result.failure(IllegalStateException("The original download source is unavailable"))
+        deleteDownload(id)
         return downloadDirect(
             mediaId = item.mediaId,
             title = item.title,
