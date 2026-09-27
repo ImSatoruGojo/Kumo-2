@@ -16,21 +16,17 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,9 +35,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.kumo.beta.data.DemoData
+import app.kumo.beta.data.CatalogStore
 import app.kumo.beta.data.local.LibraryCategory
 import app.kumo.beta.data.local.LibraryManager
+import app.kumo.beta.data.local.SavedTitleStore
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.Title
 import app.kumo.beta.ui.components.PosterCard
@@ -52,18 +49,20 @@ fun LibraryScreen(
     onTitleClick: (Title) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val libManager = remember { LibraryManager(context) }
+    val libraryManager = remember { LibraryManager(context) }
+    val savedTitleStore = remember { SavedTitleStore(context) }
     val settings = remember { SettingsPreferencesStore(context).get() }
+    var selectedTab by remember { mutableIntStateOf(0) }
 
-    var selectedTab by remember { mutableStateOf(0) }
     val categories = LibraryCategory.entries
-
-    var showAddCustomDialog by remember { mutableStateOf(false) }
-    var newListName by remember { mutableStateOf("") }
-
-    val handleDetails = { title: Title ->
-        onNavigateToDetails(title.id)
-        onTitleClick(title)
+    val currentCategory = categories.getOrNull(selectedTab) ?: LibraryCategory.FAVORITES
+    val titleIds = remember(selectedTab) {
+        libraryManager.getTitlesInCategory(currentCategory).toList()
+    }
+    val titlesInCategory = remember(titleIds, savedTitleStore) {
+        titleIds.mapNotNull { id ->
+            CatalogStore.get(id) ?: savedTitleStore.get(id)?.also(CatalogStore::put)
+        }
     }
 
     Column(
@@ -74,19 +73,21 @@ fun LibraryScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Library",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            IconButton(onClick = { showAddCustomDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add List", tint = MaterialTheme.colorScheme.primary)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Library",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    currentCategory.displayName + " • " + titlesInCategory.size + " titles",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -96,13 +97,13 @@ fun LibraryScreen(
             contentColor = MaterialTheme.colorScheme.primary,
             edgePadding = 16.dp
         ) {
-            categories.forEachIndexed { index, cat ->
+            categories.forEachIndexed { index, category ->
                 Tab(
                     selected = selectedTab == index,
                     onClick = { selectedTab = index },
                     text = {
                         Text(
-                            text = cat.displayName,
+                            category.displayName,
                             fontSize = 14.sp,
                             fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
                         )
@@ -111,47 +112,32 @@ fun LibraryScreen(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = categories[selectedTab].displayName + " Collection",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = libManager.getTitlesInCategory(categories[selectedTab]).size.toString() + " titles",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Spacer(Modifier.height(8.dp))
 
-        val currentCat = categories[selectedTab]
-        val titleIds = remember(selectedTab) { libManager.getTitlesInCategory(currentCat) }
-        val titlesInCat = remember(titleIds) {
-            titleIds.mapNotNull { DemoData.getById(it) }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (titlesInCat.isEmpty()) {
+        if (titlesInCategory.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = Icons.Default.Bookmark,
+                        Icons.Default.Bookmark,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(52.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(10.dp))
                     Text(
-                        text = "No content in ${currentCat.displayName}",
+                        "Nothing here yet",
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        "Add titles from their details page",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -162,41 +148,21 @@ fun LibraryScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                items(titlesInCat) { item ->
-                    PosterCard(title = item, onClick = { handleDetails(item) })
+                items(titlesInCategory, key = { it.id }) { title ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        PosterCard(
+                            title = title,
+                            onClick = {
+                                CatalogStore.put(title)
+                                onNavigateToDetails(title.id)
+                                onTitleClick(title)
+                            }
+                        )
+                    }
                 }
             }
         }
-    }
-
-    if (showAddCustomDialog) {
-        AlertDialog(
-            onDismissRequest = { showAddCustomDialog = false },
-            title = { Text("Create Custom List") },
-            text = {
-                OutlinedTextField(
-                    value = newListName,
-                    onValueChange = { newListName = it },
-                    placeholder = { Text("List Name") },
-                    singleLine = true
-                )
-            },
-            confirmButton = {
-                Button(onClick = {
-                    if (newListName.isNotBlank()) {
-                        libManager.addCustomList(newListName.trim())
-                        newListName = ""
-                        showAddCustomDialog = false
-                    }
-                }) {
-                    Text("Create")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddCustomDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }
