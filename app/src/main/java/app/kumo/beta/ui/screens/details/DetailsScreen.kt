@@ -59,6 +59,7 @@ fun DetailsScreen(
     var showCategoryMenu by remember { mutableStateOf(false) }
     var isDescriptionExpanded by remember { mutableStateOf(false) }
     var pendingDownload by remember { mutableStateOf<app.kumo.beta.model.Episode?>(null) }
+    var watchedRevision by remember { mutableIntStateOf(0) }
     val settings = remember { SettingsPreferencesStore(context).get() }
     val resumeProgress = remember(title.id) {
         libraryStore.getContinueWatching().firstOrNull { it.contentId == title.id }
@@ -432,6 +433,16 @@ fun DetailsScreen(
                                 )
                                 Text(text = ep.durationMs?.let { formatDuration(it) } ?: "Duration unavailable", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    val watched = watchedRevision >= 0 && libraryStore.isWatched(title.id, ep.id)
+                                    TextButton(
+                                        onClick = {
+                                            if (watched) libraryStore.unmarkWatched(title.id, ep.id)
+                                            else libraryStore.markWatched(title.id, ep.id)
+                                            watchedRevision++
+                                        }
+                                    ) {
+                                        Text(if (watched) "Watched" else "Mark")
+                                    }
                                     IconButton(onClick = { if (settings.confirmDownloads) pendingDownload = ep else onDownloadEpisode(ep) }) {
                                         Icon(Icons.Default.Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
                                     }
