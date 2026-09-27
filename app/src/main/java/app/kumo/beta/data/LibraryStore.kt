@@ -29,6 +29,12 @@ class LibraryStore(context: Context) {
         prefs.edit().putStringSet("watched", current).apply()
     }
 
+    fun unmarkWatched(contentId: String, episodeId: String) {
+        val current = prefs.getStringSet("watched", emptySet())?.toMutableSet() ?: mutableSetOf()
+        current.remove(contentId + "|" + episodeId)
+        prefs.edit().putStringSet("watched", current).apply()
+    }
+
     fun isWatched(contentId: String, episodeId: String): Boolean =
         prefs.getStringSet("watched", emptySet())?.contains(contentId + "|" + episodeId) == true
 
