@@ -64,9 +64,13 @@ fun HomeScreen(
     var newTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var movieTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var featuredTitle by remember { mutableStateOf<Title?>(null) }
+    var loading by remember { mutableStateOf(false) }
+    var loadError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(providerEngine) {
         val engine = providerEngine ?: return@LaunchedEffect
+        loading = true
+        loadError = null
         val loaded = coroutineScope {
             val popular = async { runCatching { engine.catalog("popular", MediaType.ANIME) }.getOrDefault(emptyList()) }
             val trending = async { runCatching { engine.catalog("trending", MediaType.ANIME) }.getOrDefault(emptyList()) }
@@ -81,6 +85,10 @@ fun HomeScreen(
         newTitles = loaded[3].map { it.title }.distinctBy { it.id }
         movieTitles = loaded[4].map { it.title }.distinctBy { it.id }
         featuredTitle = popularTitles.firstOrNull()
+        loading = false
+        if (popularTitles.isEmpty() && trendingTitles.isEmpty() && topTitles.isEmpty() && newTitles.isEmpty() && movieTitles.isEmpty()) {
+            loadError = "No catalog data is available from the enabled providers"
+        }
     }
 
     val popularAnimeState = rememberLazyListState()
