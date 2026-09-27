@@ -35,7 +35,7 @@ class DownloadManager(context: Context) {
     private val prefs = appContext.getSharedPreferences("kumo_downloads", Context.MODE_PRIVATE)
     private val storage = StorageLocationManager(appContext)
     private val settings = SettingsPreferencesStore(appContext)
-    private val downloadSlots = java.util.concurrent.Semaphore(settings.get().maxConcurrentDownloads.coerceIn(1, 4), true)
+    private val downloadSlots = java.util.concurrent.Semaphore(12, true)
 
     fun getDownloads(): List<DownloadItem> {
         val raw = prefs.getString("custom_dls", null) ?: return emptyList()
@@ -76,6 +76,7 @@ class DownloadManager(context: Context) {
         mimeType: String? = null
     ): Result<DownloadItem> = withContext(Dispatchers.IO) {
         var currentId: String? = null
+        var slotPermits = 0
         runCatching {
             require(storage.hasValidLocation()) { "Choose a download folder in Settings first" }
             require(isNetworkAllowed()) { "Downloads are restricted to Wi Fi while Wi Fi only is enabled" }
@@ -89,7 +90,8 @@ class DownloadManager(context: Context) {
             }?.let { existing ->
                 return@runCatching existing
             }
-            require(downloadSlots.tryAcquire()) { "Download queue is full; try again when an active download finishes" }
+            slotPermits = 12 / settings.get().maxConcurrentDownloads.coerceIn(1, 4)
+            require(downloadSlots.tryAcquire(slotPermits)) { "Download queue is full; try again when an active download finishes" }
 
             val item = DownloadItem(
                 id = UUID.randomUUID().toString(),
@@ -168,7 +170,7 @@ class DownloadManager(context: Context) {
                 }
             }
         }.also {
-            if (currentId != null) downloadSlots.release()
+            if (slotPermits > 0) downloadSlots.release(slotPermits)
         }
     }
 
