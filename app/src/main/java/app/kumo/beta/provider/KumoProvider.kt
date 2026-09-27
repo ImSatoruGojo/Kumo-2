@@ -24,6 +24,8 @@ data class KumoStreamSource(
     val headers: Map<String, String> = emptyMap(),
     val referer: String? = null,
     val mimeType: String? = null,
+    val introStartMs: Long? = null,
+    val introEndMs: Long? = null,
     val providerId: String
 )
 
