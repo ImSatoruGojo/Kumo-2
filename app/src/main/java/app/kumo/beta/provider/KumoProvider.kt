@@ -1,5 +1,6 @@
 package app.kumo.beta.provider
 
+import app.kumo.beta.model.Chapter
 import app.kumo.beta.model.Episode
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
@@ -43,5 +44,6 @@ interface KumoProvider {
     suspend fun getEpisodes(title: Title): List<Episode>
     suspend fun getSources(episode: Episode): List<KumoStreamSource>
     suspend fun getSubtitles(source: KumoStreamSource): List<KumoSubtitle>
+    suspend fun getChapterPages(chapter: Chapter): List<String> = emptyList()
     suspend fun getCatalog(section: String): List<KumoSearchResult> = emptyList()
 }
