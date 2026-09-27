@@ -268,7 +268,18 @@ fun KumoNavGraph() {
                         contentId = titleId,
                         episode = episode,
                         sourceResolver = sourceResolver,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onEpisodeEnded = {
+                            val currentIndex = title.episodes.indexOfFirst { it.id == episode.id }
+                            val next = title.episodes.getOrNull(currentIndex + 1)
+                            if (next != null) {
+                                navController.navigate("player/" + titleId + "/" + next.id) {
+                                    popUpTo("player/" + titleId + "/" + episodeId) { inclusive = true }
+                                }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        }
                     )
                 }
             }
