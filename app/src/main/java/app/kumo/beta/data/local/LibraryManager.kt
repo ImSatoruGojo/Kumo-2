@@ -38,6 +38,13 @@ class LibraryManager(context: Context) {
                 result.add(key.removePrefix("cat_"))
             }
         }
+        if (category == LibraryCategory.FAVORITES) {
+            for ((key, value) in prefs.all) {
+                if (key.startsWith("fav_") && value == true) {
+                    result.add(key.removePrefix("fav_"))
+                }
+            }
+        }
         return result
     }
 
