@@ -17,12 +17,14 @@ class SourceResolver(private val registry: ProviderRegistry) {
         val providers = registry.getEnabledProviders()
         if (providers.isEmpty()) return@withContext emptyList()
 
-        val selectedProviders = if (allowFallback) providers else providers.take(1)
+        val matchingProviders = providers.filter { episode.providerIds.isEmpty() || it.id in episode.providerIds }
+        val selectedProviders = if (allowFallback) matchingProviders else matchingProviders.take(1)
 
         val rawSources = coroutineScope {
             selectedProviders.flatMap { provider ->
                 val sources = withTimeoutOrNull(12_000L) {
-                    runCatching { provider.getSources(episode) }.getOrDefault(emptyList())
+                    val providerEpisodeId = episode.providerEpisodeIds[provider.id] ?: episode.id
+                    runCatching { provider.getSources(episode.copy(id = providerEpisodeId)) }.getOrDefault(emptyList())
                 }.orEmpty()
                 sources.map { source ->
                     val providerId = source.providerId.ifBlank { provider.id }
