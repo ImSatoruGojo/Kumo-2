@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.kumo.beta.data.CatalogStore
 import app.kumo.beta.data.LibraryStore
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.MediaType
@@ -94,6 +95,7 @@ fun HomeScreen(
     }
 
     fun openTitle(title: Title) {
+        CatalogStore.put(title)
         onNavigateToDetails(title.id)
         onTitleClick(title)
     }
