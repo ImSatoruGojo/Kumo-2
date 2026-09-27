@@ -195,7 +195,7 @@ fun KumoNavGraph() {
                 )
             }
             composable(Screen.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(onExtensionsChanged = { extensionManager.reloadAll() })
             }
             composable(
                 route = Screen.Details.route,
