@@ -58,13 +58,32 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
 
     fun refreshUi() {
         repositories = repositoryManager.getRepositories()
-        extensions = repositoryManager.getAllExtensions().filter { settings.showAdultContent || !it.nsfw }.map { extension ->
-            val current = extensionInstaller.installed().firstOrNull { it.id == extension.id }
+        val installed = extensionInstaller.installed()
+        val available = repositoryManager.getAllExtensions().filter { settings.showAdultContent || !it.nsfw }
+        val fromInstalled = installed
+            .filter { installedExtension -> available.none { it.id == installedExtension.id } }
+            .map { installedExtension ->
+                ExtensionInfo(
+                    id = installedExtension.id,
+                    name = installedExtension.id,
+                    packageName = installedExtension.packageName,
+                    repositoryId = "installed",
+                    repositoryUrl = "",
+                    type = app.kumo.beta.repository.RepositoryType.UNKNOWN,
+                    downloadUrl = installedExtension.filePath,
+                    version = installedExtension.version,
+                    versionCode = installedExtension.versionCode,
+                    installed = true,
+                    enabled = installedExtension.enabled
+                )
+            }
+        extensions = (available + fromInstalled).map { extension ->
+            val current = installed.firstOrNull { it.id == extension.id }
             extension.copy(
                 installed = current != null,
                 enabled = current?.enabled ?: extension.enabled
             )
-        }
+        }.distinctBy { it.id }
         storageName = storageManager.displayName()
         onExtensionsChanged()
     }
