@@ -11,6 +11,8 @@ class CacheManager(context: Context) {
             .filter { it.isFile }
             .sumOf { it.length() }
 
+    fun clear(): Long = cacheDir.walkTopDown().filter { it.isFile }.map { file -> val size = file.length(); if (file.delete()) size else 0L }.sum()
+
     fun trimToLimit(limitMb: Int): Long {
         val limit = limitMb.coerceAtLeast(32) * 1024L * 1024L
         var current = sizeBytes()
