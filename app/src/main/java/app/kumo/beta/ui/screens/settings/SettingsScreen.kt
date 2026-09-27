@@ -143,6 +143,20 @@ fun SettingsScreen() {
         }
 
         item {
+            SettingsGroup("Content") {
+                SwitchItem(
+                    "Show adult extensions",
+                    "Allow extensions marked as adult content to appear in the extension list",
+                    settings.showAdultContent
+                ) {
+                    settingsStore.setShowAdultContent(it)
+                    settings = settingsStore.get()
+                    refreshUi()
+                }
+            }
+        }
+
+        item {
             Text("Repositories", color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
             OutlinedTextField(
                 value = repositoryUrl,
