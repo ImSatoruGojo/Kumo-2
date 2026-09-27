@@ -41,7 +41,9 @@ data class Title(
     val seasons: List<Season> = emptyList(),
     val episodes: List<Episode> = emptyList(),
     val chapters: List<Chapter> = emptyList(),
-    val relatedTitles: List<String> = emptyList()
+    val relatedTitles: List<String> = emptyList(),
+    val providerIds: List<String> = emptyList(),
+    val providerTitleIds: Map<String, String> = emptyMap()
 )
 
 data class Season(
@@ -58,7 +60,9 @@ data class Episode(
     val description: String? = null,
     val thumbnailUrl: String? = null,
     val durationMs: Long? = null,
-    val isWatched: Boolean = false
+    val isWatched: Boolean = false,
+    val providerIds: List<String> = emptyList(),
+    val providerEpisodeIds: Map<String, String> = emptyMap()
 )
 
 data class Chapter(
