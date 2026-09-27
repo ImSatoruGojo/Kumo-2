@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.data.local.SavedTitleStore
 import app.kumo.beta.extension.ExtensionManager
+import app.kumo.beta.provider.ChapterResolver
 import app.kumo.beta.provider.JikanProvider
 import app.kumo.beta.provider.ProviderEngine
 import app.kumo.beta.provider.ProviderRegistry
@@ -43,6 +44,7 @@ import app.kumo.beta.ui.screens.search.SearchScreen
 import app.kumo.beta.ui.screens.settings.SettingsScreen
 import app.kumo.beta.ui.screens.player.PlayerScreen
 import app.kumo.beta.ui.screens.player.OfflinePlayerScreen
+import app.kumo.beta.ui.screens.player.MangaReaderScreen
 import app.kumo.beta.ui.theme.KumoBlack
 import app.kumo.beta.ui.theme.KumoPurple
 import app.kumo.beta.ui.theme.KumoSurface
@@ -83,6 +85,7 @@ fun KumoNavGraph() {
     val extensionManager = remember { ExtensionManager(context, providerRegistry) }
     val providerEngine = remember { ProviderEngine(providerRegistry) }
     val sourceResolver = remember { SourceResolver(providerRegistry) }
+    val chapterResolver = remember { ChapterResolver(providerRegistry) }
     val coroutineScope = rememberCoroutineScope()
     val downloadManager = remember { DownloadManager(context) }
     val homeVoiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -226,6 +229,9 @@ fun KumoNavGraph() {
                         onEpisodeClick = { episode ->
                             navController.navigate("player/" + title.id + "/" + episode.id)
                         },
+                        onChapterClick = { chapter ->
+                            navController.navigate("manga/" + title.id + "/" + chapter.id)
+                        },
                         onDownloadEpisode = { episode ->
                             coroutineScope.launch {
                                 val source = sourceResolver.resolve(episode).firstOrNull()
@@ -247,6 +253,26 @@ fun KumoNavGraph() {
                                 }
                             }
                         }
+                    )
+                }
+            }
+            composable(
+                route = "manga/{titleId}/{chapterId}",
+                arguments = listOf(
+                    navArgument("titleId") { type = NavType.StringType },
+                    navArgument("chapterId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val titleId = backStackEntry.arguments?.getString("titleId") ?: return@composable
+                val chapterId = backStackEntry.arguments?.getString("chapterId") ?: return@composable
+                val title = CatalogStore.get(titleId) ?: savedTitleStore.get(titleId)?.also(CatalogStore::put)
+                val chapter = title?.chapters?.firstOrNull { it.id == chapterId }
+                if (title != null && chapter != null) {
+                    MangaReaderScreen(
+                        title = title,
+                        chapter = chapter,
+                        chapterResolver = chapterResolver,
+                        onBack = { navController.popBackStack() }
                     )
                 }
             }
