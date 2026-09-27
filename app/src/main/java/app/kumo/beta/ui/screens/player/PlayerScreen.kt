@@ -156,7 +156,7 @@ fun PlayerScreen(
                     val subtitleConfigurations = if (settings.defaultSubtitle == "Off") {
                         emptyList()
                     } else {
-                        it.subtitles.mapNotNull(::subtitleConfiguration)
+                        it.subtitles.mapNotNull { subtitleConfiguration(it, settings.subtitleLanguage) }
                     }
                     setMediaItem(
                         MediaItem.Builder()
@@ -482,7 +482,7 @@ fun PlayerScreen(
 private fun speedLabel(speed: Float): String =
     if (speed % 1f == 0f) speed.toInt().toString() + "x" else speed.toString() + "x"
 
-private fun subtitleConfiguration(subtitle: KumoSubtitle): MediaItem.SubtitleConfiguration? {
+private fun subtitleConfiguration(subtitle: KumoSubtitle, preferredLanguage: String): MediaItem.SubtitleConfiguration? {
     val cleanUrl = subtitle.url.substringBefore("?")
     val mime = when {
         subtitle.format.equals("vtt", ignoreCase = true) || cleanUrl.endsWith(".vtt", ignoreCase = true) -> MimeTypes.TEXT_VTT
@@ -493,6 +493,10 @@ private fun subtitleConfiguration(subtitle: KumoSubtitle): MediaItem.SubtitleCon
     return MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitle.url))
         .setMimeType(mime)
         .setLanguage(subtitle.language)
-        .setSelectionFlags(MediaItem.SubtitleConfiguration.SELECTION_FLAG_DEFAULT)
+        .setSelectionFlags(
+            if (preferredLanguage.equals("Auto", ignoreCase = true) ||
+                subtitle.language.equals(preferredLanguage, ignoreCase = true)
+            ) MediaItem.SubtitleConfiguration.SELECTION_FLAG_DEFAULT else 0
+        )
         .build()
 }
