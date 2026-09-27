@@ -22,8 +22,6 @@ import app.kumo.beta.repository.ExtensionInstaller
 import app.kumo.beta.repository.Repository
 import app.kumo.beta.repository.RepositoryManager
 import app.kumo.beta.repository.RepositoryResult
-import app.kumo.beta.ui.theme.KumoBlack
-import app.kumo.beta.ui.theme.KumoCard
 import app.kumo.beta.ui.theme.KumoPurple
 import app.kumo.beta.ui.theme.KumoTextSecondary
 import kotlinx.coroutines.launch
@@ -70,7 +68,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(KumoBlack).padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp),
         contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -329,7 +327,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
 
 @Composable
 private fun RepositoryRow(repository: Repository, onToggle: () -> Unit, onRefresh: () -> Unit, onRemove: () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
+    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp)) {
         Text(repository.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
         Text(repository.url, color = KumoTextSecondary, fontSize = 12.sp, maxLines = 2)
         repository.lastRefreshStatus?.let { Text("Status: " + it, color = KumoTextSecondary, fontSize = 12.sp) }
