@@ -9,16 +9,33 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
-class ProviderEngine(private val registry: ProviderRegistry) {
+class ProviderEngine(private val registry: ProviderRegistry, private val health: ProviderHealthStore? = null) {
     suspend fun search(query: String, type: MediaType? = null): List<KumoSearchResult> = withContext(Dispatchers.IO) {
         coroutineScope {
             registry.getEnabledProviders()
                 .filter { type == null || type in it.supportedTypes }
+                .filter { health?.canTry(it.id) != false }
                 .map { provider ->
                     async {
-                        withTimeoutOrNull(12_000L) {
-                            if (type == null) provider.search(query) else provider.search(query, type)
-                        }.orEmpty()
+                        val result = withTimeoutOrNull(12_000L) {
+                            runCatching {
+                                if (type == null) provider.search(query) else provider.search(query, type)
+                            }
+                        }
+                        when {
+                            result == null -> {
+                                health?.markFailure(provider.id)
+                                emptyList()
+                            }
+                            result.isSuccess -> {
+                                health?.markSuccess(provider.id)
+                                result.getOrDefault(emptyList())
+                            }
+                            else -> {
+                                health?.markFailure(provider.id)
+                                emptyList()
+                            }
+                        }
                     }
                 }
                 .awaitAll()
@@ -29,13 +46,32 @@ class ProviderEngine(private val registry: ProviderRegistry) {
 
     suspend fun catalog(section: String, type: MediaType? = null): List<KumoSearchResult> = withContext(Dispatchers.IO) {
         coroutineScope {
-            registry.getEnabledProviders().filter { type == null || type in it.supportedTypes }.map { provider ->
-                async {
-                    withTimeoutOrNull(12_000L) {
-                        if (type == null) provider.getCatalog(section) else provider.getCatalog(section, type)
-                    }.orEmpty()
-                }
-            }.awaitAll().flatten().let(::mergeTitles)
+            registry.getEnabledProviders()
+                .filter { type == null || type in it.supportedTypes }
+                .filter { health?.canTry(it.id) != false }
+                .map { provider ->
+                    async {
+                        val result = withTimeoutOrNull(12_000L) {
+                            runCatching {
+                                if (type == null) provider.getCatalog(section) else provider.getCatalog(section, type)
+                            }
+                        }
+                        when {
+                            result == null -> {
+                                health?.markFailure(provider.id)
+                                emptyList()
+                            }
+                            result.isSuccess -> {
+                                health?.markSuccess(provider.id)
+                                result.getOrDefault(emptyList())
+                            }
+                            else -> {
+                                health?.markFailure(provider.id)
+                                emptyList()
+                            }
+                        }
+                    }
+                }.awaitAll().flatten().let(::mergeTitles)
         }
     }
 
