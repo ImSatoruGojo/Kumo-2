@@ -29,7 +29,7 @@ import app.kumo.beta.ui.theme.KumoTextSecondary
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repositoryManager = remember { RepositoryManager(context) }
@@ -68,6 +68,7 @@ fun SettingsScreen() {
             )
         }
         storageName = storageManager.displayName()
+        onExtensionsChanged()
     }
 
     LazyColumn(
