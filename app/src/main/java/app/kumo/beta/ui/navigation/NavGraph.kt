@@ -314,6 +314,7 @@ fun KumoNavGraph() {
                     PlayerScreen(
                         contentId = titleId,
                         episode = episode,
+                        mediaType = title.type,
                         sourceResolver = sourceResolver,
                         onBack = { navController.popBackStack() },
                         onEpisodeEnded = {
