@@ -369,6 +369,20 @@ private fun ExtensionRow(
                     installer.setEnabled(extension.id, !extension.enabled)
                     onChanged()
                 }) { Text(if (extension.enabled) "Disable" else "Enable") }
+                if (extension.version != null) {
+                    TextButton(
+                        onClick = {
+                            installing = true
+                            scope.launch {
+                                installer.install(extension)
+                                    .onSuccess { onChanged() }
+                                    .onFailure { onError(it.message ?: "Update failed") }
+                                installing = false
+                            }
+                        },
+                        enabled = !installing
+                    ) { Text(if (installing) "Updating…" else "Update") }
+                }
                 TextButton(onClick = {
                     installer.removeInstalled(extension.id)
                     onChanged()
