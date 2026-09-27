@@ -8,15 +8,21 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
-class ChapterResolver(private val registry: ProviderRegistry) {
+class ChapterResolver(private val registry: ProviderRegistry, private val health: ProviderHealthStore? = null) {
     suspend fun resolve(chapter: Chapter): List<String> = withContext(Dispatchers.IO) {
         coroutineScope {
             registry.getProvidersForMediaType(app.kumo.beta.model.MediaType.MANGA)
+                .filter { health?.canTry(it.id) != false }
                 .map { provider ->
                     async {
-                        withTimeoutOrNull(12_000L) {
-                            runCatching { provider.getChapterPages(chapter) }.getOrDefault(emptyList())
-                        }.orEmpty()
+                        val result = withTimeoutOrNull(12_000L) {
+                            runCatching { provider.getChapterPages(chapter) }
+                        }
+                        when {
+                            result == null -> { health?.markFailure(provider.id); emptyList() }
+                            result.isSuccess -> { health?.markSuccess(provider.id); result.getOrDefault(emptyList()) }
+                            else -> { health?.markFailure(provider.id); emptyList() }
+                        }
                     }
                 }
                 .awaitAll()
