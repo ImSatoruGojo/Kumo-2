@@ -105,6 +105,8 @@ class SourceResolver(private val registry: ProviderRegistry, private val health:
             headers = headers,
             referer = sources.firstNotNullOfOrNull { it.referer },
             mimeType = sources.firstNotNullOfOrNull { it.mimeType },
+            introStartMs = sources.firstNotNullOfOrNull { it.introStartMs },
+            introEndMs = sources.firstNotNullOfOrNull { it.introEndMs },
             providerId = sources.map { it.providerId }.distinct().joinToString(" + ")
         )
     }
