@@ -146,6 +146,24 @@ fun PlayerScreen(
         }
     }
 
+    DisposableEffect(player, source?.url) {
+        val currentPlayer = player ?: return@DisposableEffect onDispose {}
+        val listener = object : Player.Listener {
+            override fun onPlayerError(playbackException: androidx.media3.common.PlaybackException) {
+                val index = sources.indexOfFirst { it.url == source?.url }
+                val fallback = sources.drop(index + 1).firstOrNull()
+                if (fallback != null) {
+                    error = null
+                    selected = fallback
+                } else {
+                    error = playbackException.message ?: "Playback failed"
+                }
+            }
+        }
+        currentPlayer.addListener(listener)
+        onDispose { currentPlayer.removeListener(listener) }
+    }
+
     LaunchedEffect(player) {
         while (player != null) {
             delay(5000)
