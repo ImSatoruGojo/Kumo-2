@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
@@ -27,6 +28,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
+import androidx.media3.ui.TrackSelectionDialogBuilder
 import app.kumo.beta.data.LibraryStore
 import app.kumo.beta.data.PlaybackPreferencesStore
 import app.kumo.beta.data.local.SettingsPreferencesStore
@@ -260,6 +262,23 @@ fun PlayerScreen(
                         }
                     }
                 }
+                if (player != null) {
+                    TextButton(onClick = {
+                        TrackSelectionDialogBuilder(context, "Audio", player, C.TRACK_TYPE_AUDIO)
+                            .build()
+                            .show()
+                    }) {
+                        Text("Audio", color = KumoPurple)
+                    }
+                    TextButton(onClick = {
+                        TrackSelectionDialogBuilder(context, "Subtitles", player, C.TRACK_TYPE_TEXT)
+                            .build()
+                            .show()
+                    }) {
+                        Text("Subtitles", color = KumoPurple)
+                    }
+                }
+
                 if (sources.size > 1) {
                     TextButton(onClick = { showSourceMenu = true }) {
                         Text("Source", color = KumoPurple)
