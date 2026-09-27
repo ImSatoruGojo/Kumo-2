@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -16,6 +17,7 @@ fun DownloadsScreen(onPlay: (DownloadItem) -> Unit = {}) {
     val context = LocalContext.current
     val manager = remember { DownloadManager(context) }
     var downloads by remember { mutableStateOf(manager.getDownloads()) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -95,6 +97,16 @@ private fun DownloadRow(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (playable) {
                     Button(onClick = onPlay) { Text("Play") }
+                }
+                if (item.status == app.kumo.beta.data.local.DownloadStatus.FAILED || item.status == app.kumo.beta.data.local.DownloadStatus.PAUSED) {
+                    OutlinedButton(onClick = {
+                        scope.launch {
+                            manager.retryDownload(item.id)
+                            downloads = manager.getDownloads()
+                        }
+                    }) {
+                        Text("Retry")
+                    }
                 }
                 TextButton(onClick = onDelete) { Text("Delete") }
             }
