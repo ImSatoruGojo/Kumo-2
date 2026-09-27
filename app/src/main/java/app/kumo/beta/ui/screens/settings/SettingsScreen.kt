@@ -62,9 +62,7 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
             val current = extensionInstaller.installed().firstOrNull { it.id == extension.id }
             extension.copy(
                 installed = current != null,
-                enabled = current?.enabled ?: extension.enabled,
-                version = current?.version ?: extension.version,
-                versionCode = current?.versionCode ?: extension.versionCode
+                enabled = current?.enabled ?: extension.enabled
             )
         }
         storageName = storageManager.displayName()
@@ -352,6 +350,13 @@ private fun ExtensionRow(
 ) {
     var installing by remember(extension.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val installedRecord = remember(extension.id, extension.version, extension.versionCode) {
+        installer.installed().firstOrNull { it.id == extension.id }
+    }
+    val updateAvailable = installedRecord != null && (
+        (extension.versionCode != null && installedRecord.versionCode != null && extension.versionCode > installedRecord.versionCode) ||
+            versionRank(extension.version) > versionRank(installedRecord.version)
+        )
 
     Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
         Text(extension.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
@@ -369,7 +374,7 @@ private fun ExtensionRow(
                     installer.setEnabled(extension.id, !extension.enabled)
                     onChanged()
                 }) { Text(if (extension.enabled) "Disable" else "Enable") }
-                if (extension.version != null) {
+                if (updateAvailable) {
                     TextButton(
                         onClick = {
                             installing = true
@@ -440,6 +445,14 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
 }
 
 @Composable
+private fun versionRank(version: String?): List<Int> =
+    version.orEmpty()
+        .split(Regex("[^0-9]+"))
+        .filter { it.isNotBlank() }
+        .take(4)
+        .mapNotNull { it.toIntOrNull() }
+        .let { it + List((4 - it.size).coerceAtLeast(0)) { 0 } }
+
 private fun SettingsItem(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
