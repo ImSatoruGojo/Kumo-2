@@ -80,7 +80,6 @@ class DownloadManager(context: Context) {
             require(storage.hasValidLocation()) { "Choose a download folder in Settings first" }
             require(isNetworkAllowed()) { "Downloads are restricted to Wi Fi while Wi Fi only is enabled" }
             require(sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://")) { "Invalid download URL" }
-            require(!sourceUrl.contains(".m3u8", ignoreCase = true)) { "This HLS source needs segmented download support" }
             require(downloadSlots.tryAcquire()) { "Download queue is full; try again when an active download finishes" }
 
             val item = DownloadItem(
@@ -96,6 +95,17 @@ class DownloadManager(context: Context) {
             )
             currentId = item.id
             upsert(item)
+
+            if (sourceUrl.substringBefore("?").endsWith(".m3u8", ignoreCase = true)) {
+                val completed = downloadHls(
+                    item = item,
+                    playlistUrl = sourceUrl,
+                    headers = headers,
+                    referer = referer
+                )
+                upsert(completed)
+                return@runCatching completed
+            }
 
             val connection = URL(sourceUrl).openConnection() as HttpURLConnection
             connection.connectTimeout = settings.get().networkTimeoutSeconds * 1000
@@ -185,6 +195,152 @@ class DownloadManager(context: Context) {
             })
         }
         prefs.edit().putString("custom_dls", array.toString()).apply()
+    }
+
+    private fun downloadHls(
+        item: DownloadItem,
+        playlistUrl: String,
+        headers: Map<String, String>,
+        referer: String?
+    ): DownloadItem {
+        var currentUrl = playlistUrl
+        var playlist = fetchText(currentUrl, headers, referer)
+
+        repeat(2) {
+            val variant = parseMasterVariants(currentUrl, playlist).maxByOrNull { it.bandwidth }
+            if (variant == null) return@repeat
+            currentUrl = variant.url
+            playlist = fetchText(currentUrl, headers, referer)
+        }
+
+        require(playlist.lines().any { it.startsWith("#EXT-X-ENDLIST") }) {
+            "Only completed VOD HLS playlists can be downloaded"
+        }
+        require(playlist.lines().none { it.startsWith("#EXT-X-KEY") && !it.contains("METHOD=NONE") }) {
+            "Encrypted HLS downloads are not supported yet"
+        }
+        require(playlist.lines().none { it.startsWith("#EXT-X-BYTERANGE") }) {
+            "HLS byte range playlists are not supported yet"
+        }
+
+        val lines = playlist.lines().map { it.trim() }
+        val initMap = lines.firstOrNull { it.startsWith("#EXT-X-MAP:") }?.let { line ->
+            Regex("URI=\"([^\"]+)\"").find(line)?.groupValues?.getOrNull(1)
+        }
+        val segments = lines
+            .filter { it.isNotBlank() && !it.startsWith("#") }
+            .map { java.net.URI(currentUrl).resolve(it).toString() }
+            .distinct()
+        require(segments.isNotEmpty()) { "HLS playlist contains no media segments" }
+
+        val tree = storage.getTreeUri() ?: error("Download folder is no longer available")
+        val extension = if (initMap != null) ".mp4" else ".ts"
+        val mime = if (initMap != null) "video/mp4" else "video/mp2t"
+        val name = sanitize(item.title + " - " + item.episodeTitle) + extension
+        val fileUri = DocumentsContract.createDocument(
+            appContext.contentResolver,
+            tree,
+            mime,
+            name
+        ) ?: error("Unable to create the download file")
+
+        var downloaded = 0L
+        try {
+            appContext.contentResolver.openOutputStream(fileUri, "w")?.use { output ->
+                if (initMap != null) {
+                    writeUrlToOutput(java.net.URI(currentUrl).resolve(initMap).toString(), headers, referer, output) { bytes ->
+                        downloaded += bytes
+                        upsert(item.copy(downloadedBytes = downloaded, status = DownloadStatus.DOWNLOADING))
+                    }
+                }
+                segments.forEachIndexed { index, segment ->
+                    writeUrlToOutput(segment, headers, referer, output) { bytes ->
+                        downloaded += bytes
+                    }
+                    upsert(
+                        item.copy(
+                            totalBytes = 0L,
+                            downloadedBytes = downloaded,
+                            status = DownloadStatus.DOWNLOADING,
+                            speed = "Segment " + (index + 1) + "/" + segments.size,
+                            eta = "--"
+                        )
+                    )
+                }
+            } ?: error("Unable to open the selected storage folder")
+        } catch (e: Exception) {
+            runCatching { DocumentsContract.deleteDocument(appContext.contentResolver, fileUri) }
+            throw e
+        }
+
+        return item.copy(
+            totalBytes = downloaded,
+            downloadedBytes = downloaded,
+            status = DownloadStatus.COMPLETED,
+            speed = "Complete",
+            eta = "Done",
+            fileUri = fileUri.toString()
+        )
+    }
+
+    private data class HlsVariant(val url: String, val bandwidth: Long)
+
+    private fun parseMasterVariants(baseUrl: String, playlist: String): List<HlsVariant> {
+        val lines = playlist.lines().map { it.trim() }
+        val variants = mutableListOf<HlsVariant>()
+        for (i in lines.indices) {
+            if (!lines[i].startsWith("#EXT-X-STREAM-INF:")) continue
+            val bandwidth = Regex("BANDWIDTH=(\\d+)").find(lines[i])?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 0L
+            val uri = lines.drop(i + 1).firstOrNull { it.isNotBlank() && !it.startsWith("#") } ?: continue
+            variants += HlsVariant(java.net.URI(baseUrl).resolve(uri).toString(), bandwidth)
+        }
+        return variants
+    }
+
+    private fun fetchText(url: String, headers: Map<String, String>, referer: String?): String {
+        val connection = URL(url).openConnection() as HttpURLConnection
+        connection.connectTimeout = settings.get().networkTimeoutSeconds * 1000
+        connection.readTimeout = settings.get().networkTimeoutSeconds * 2000
+        connection.instanceFollowRedirects = true
+        connection.setRequestProperty("User-Agent", "Kumo/0.1")
+        headers.forEach { (key, value) -> connection.setRequestProperty(key, value) }
+        referer?.let { connection.setRequestProperty("Referer", it) }
+        return try {
+            require(connection.responseCode in 200..299) { "HLS playlist returned HTTP " + connection.responseCode }
+            connection.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun writeUrlToOutput(
+        url: String,
+        headers: Map<String, String>,
+        referer: String?,
+        output: java.io.OutputStream,
+        onBytes: (Long) -> Unit
+    ) {
+        val connection = URL(url).openConnection() as HttpURLConnection
+        connection.connectTimeout = settings.get().networkTimeoutSeconds * 1000
+        connection.readTimeout = settings.get().networkTimeoutSeconds * 2000
+        connection.instanceFollowRedirects = true
+        connection.setRequestProperty("User-Agent", "Kumo/0.1")
+        headers.forEach { (key, value) -> connection.setRequestProperty(key, value) }
+        referer?.let { connection.setRequestProperty("Referer", it) }
+        try {
+            require(connection.responseCode in 200..299) { "HLS segment returned HTTP " + connection.responseCode }
+            connection.inputStream.use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count <= 0) break
+                    output.write(buffer, 0, count)
+                    onBytes(count.toLong())
+                }
+            }
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun isNetworkAllowed(): Boolean {
