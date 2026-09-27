@@ -356,7 +356,7 @@ private fun ExtensionRow(
             compareVersions(extension.version, installedRecord.version) > 0
         )
 
-    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
+    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp)) {
         Text(extension.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
         Text(extension.type.name, color = KumoTextSecondary, fontSize = 12.sp)
         extension.version?.let { Text("Version " + it, color = KumoTextSecondary, fontSize = 12.sp) }
@@ -442,7 +442,6 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
     Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(vertical = 4.dp), content = content)
 }
 
-@Composable
 private fun compareVersions(left: String?, right: String?): Int {
     val a = left.orEmpty().split(Regex("[^0-9]+")).filter { it.isNotBlank() }.mapNotNull { it.toIntOrNull() }
     val b = right.orEmpty().split(Regex("[^0-9]+")).filter { it.isNotBlank() }.mapNotNull { it.toIntOrNull() }
@@ -454,6 +453,7 @@ private fun compareVersions(left: String?, right: String?): Int {
     return 0
 }
 
+@Composable
 private fun SettingsItem(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
