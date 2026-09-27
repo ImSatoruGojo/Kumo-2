@@ -100,7 +100,12 @@ class JikanProvider : KumoProvider {
         connection.requestMethod = "GET"
         connection.setRequestProperty("Accept", "application/json")
         connection.setRequestProperty("User-Agent", "Kumo/0.2")
-        return connection.inputStream.bufferedReader().use { JSONObject(it.readText()) }
+        return try {
+            require(connection.responseCode in 200..299) { "Jikan HTTP " + connection.responseCode }
+            connection.inputStream.bufferedReader().use { JSONObject(it.readText()) }
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun JSONObject.toTitle(type: MediaType = MediaType.ANIME, existing: Title? = null): Title {
