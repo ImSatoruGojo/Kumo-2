@@ -62,7 +62,11 @@ class RepositoryManager(context: Context) {
                 )
             }
 
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            val body = try {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } finally {
+                connection.disconnect()
+            }
             val parsed = RepositoryParser.parse(repo.url, body)
 
             if (parsed is RepositoryResult.Success) {
