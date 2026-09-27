@@ -64,6 +64,7 @@ fun HomeScreen(
     var topTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var newTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var movieTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    var mangaTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var featuredTitle by remember { mutableStateOf<Title?>(null) }
     var loading by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
@@ -79,16 +80,18 @@ fun HomeScreen(
             val top = async { runCatching { engine.catalog("top_rated", MediaType.ANIME) }.getOrDefault(emptyList()) }
             val newest = async { runCatching { engine.catalog("new_releases", MediaType.ANIME) }.getOrDefault(emptyList()) }
             val movies = async { runCatching { engine.catalog("popular", MediaType.MOVIE) }.getOrDefault(emptyList()) }
-            listOf(popular.await(), trending.await(), top.await(), newest.await(), movies.await())
+            val manga = async { runCatching { engine.catalog("popular", MediaType.MANGA) }.getOrDefault(emptyList()) }
+            listOf(popular.await(), trending.await(), top.await(), newest.await(), movies.await(), manga.await())
         }
         popularTitles = loaded[0].map { it.title }.distinctBy { it.id }
         trendingTitles = loaded[1].map { it.title }.distinctBy { it.id }
         topTitles = loaded[2].map { it.title }.distinctBy { it.id }
         newTitles = loaded[3].map { it.title }.distinctBy { it.id }
         movieTitles = loaded[4].map { it.title }.distinctBy { it.id }
+        mangaTitles = loaded[5].map { it.title }.distinctBy { it.id }
         featuredTitle = popularTitles.firstOrNull()
         loading = false
-        if (popularTitles.isEmpty() && trendingTitles.isEmpty() && topTitles.isEmpty() && newTitles.isEmpty() && movieTitles.isEmpty()) {
+        if (popularTitles.isEmpty() && trendingTitles.isEmpty() && topTitles.isEmpty() && newTitles.isEmpty() && movieTitles.isEmpty() && mangaTitles.isEmpty()) {
             loadError = "No catalog data is available from the enabled providers"
         }
     }
@@ -372,6 +375,19 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(movieTitles, key = { it.id }) { title ->
+                    TitleCard(title = title, onClick = { openTitle(title) })
+                }
+            }
+        }
+
+        if (mangaTitles.isNotEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            SectionTitle("Popular Manga")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(mangaTitles, key = { it.id }) { title ->
                     TitleCard(title = title, onClick = { openTitle(title) })
                 }
             }
