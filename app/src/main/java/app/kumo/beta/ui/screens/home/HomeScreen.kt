@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +36,8 @@ import app.kumo.beta.provider.ProviderEngine
 import app.kumo.beta.ui.components.ContinueWatchingCard
 import app.kumo.beta.ui.components.TitleCard
 import coil.compose.AsyncImage
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -51,36 +54,42 @@ fun HomeScreen(
     val libraryStore = remember { LibraryStore(context) }
     val settingsStore = remember { SettingsPreferencesStore(context) }
     val settings = settingsStore.get()
-    var allTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    val continueWatchingList = remember { libraryStore.getContinueWatching() }
+
+    var popularTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    var trendingTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var topTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var newTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var movieTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var featuredTitle by remember { mutableStateOf<Title?>(null) }
-    LaunchedEffect(providerEngine) {
-        if (providerEngine != null) {
-            allTitles = providerEngine.catalog("popular", MediaType.ANIME).map { it.title }
-            topTitles = providerEngine.catalog("top_rated", MediaType.ANIME).map { it.title }
-            newTitles = providerEngine.catalog("new_releases", MediaType.ANIME).map { it.title }
-            movieTitles = providerEngine.catalog("popular", MediaType.MOVIE).map { it.title }
-            featuredTitle = allTitles.firstOrNull()
-        }
-    }
-        if (providerEngine != null) {
-            val popular = providerEngine.catalog("popular", MediaType.ANIME).map { it.title }
-            allTitles = popular
-            featuredTitle = popular.firstOrNull()
-        }
-    }
-    val popularAnimeState = rememberLazyListState()
 
-    LaunchedEffect(popularAnimeState) {
+    LaunchedEffect(providerEngine) {
+        val engine = providerEngine ?: return@LaunchedEffect
+        val loaded = coroutineScope {
+            val popular = async { runCatching { engine.catalog("popular", MediaType.ANIME) }.getOrDefault(emptyList()) }
+            val trending = async { runCatching { engine.catalog("trending", MediaType.ANIME) }.getOrDefault(emptyList()) }
+            val top = async { runCatching { engine.catalog("top_rated", MediaType.ANIME) }.getOrDefault(emptyList()) }
+            val newest = async { runCatching { engine.catalog("new_releases", MediaType.ANIME) }.getOrDefault(emptyList()) }
+            val movies = async { runCatching { engine.catalog("popular", MediaType.MOVIE) }.getOrDefault(emptyList()) }
+            listOf(popular.await(), trending.await(), top.await(), newest.await(), movies.await())
+        }
+        popularTitles = loaded[0].map { it.title }.distinctBy { it.id }
+        trendingTitles = loaded[1].map { it.title }.distinctBy { it.id }
+        topTitles = loaded[2].map { it.title }.distinctBy { it.id }
+        newTitles = loaded[3].map { it.title }.distinctBy { it.id }
+        movieTitles = loaded[4].map { it.title }.distinctBy { it.id }
+        featuredTitle = popularTitles.firstOrNull()
+    }
+
+    val popularAnimeState = rememberLazyListState()
+    val popularAnime = popularTitles.filter { it.type == MediaType.ANIME }
+
+    LaunchedEffect(popularAnimeState, popularAnime.size) {
+        if (popularAnime.size < 2) return@LaunchedEffect
         while (isActive) {
             delay(3500)
-            val count = allTitles.count { it.type == MediaType.ANIME }
-            if (count > 1) {
-                val next = (popularAnimeState.firstVisibleItemIndex + 1) % count
-                popularAnimeState.animateScrollToItem(next)
-            }
+            val next = (popularAnimeState.firstVisibleItemIndex + 1) % popularAnime.size
+            popularAnimeState.animateScrollToItem(next)
         }
     }
 
@@ -121,13 +130,19 @@ fun HomeScreen(
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = onNavigateToSearchWithFilter,
-                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(23.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(23.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = MaterialTheme.colorScheme.primary)
             }
             IconButton(
                 onClick = onVoiceSearch,
-                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(23.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(23.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Icon(Icons.Default.Mic, contentDescription = "Voice search", tint = MaterialTheme.colorScheme.primary)
             }
@@ -144,20 +159,74 @@ fun HomeScreen(
                     .clickable { openTitle(title) }
             ) {
                 if (!title.backdropUrl.isNullOrEmpty()) {
-                    AsyncImage(title.backdropUrl, title.title, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    AsyncImage(
+                        model = title.backdropUrl,
+                        contentDescription = title.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 } else {
-                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), Color(0xFF0F0F18)))))
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                        Color(0xFF0F0F18)
+                                    )
+                                )
+                            )
+                    )
                 }
-                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)), startY = 100f)))
-                Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
+                                startY = 100f
+                            )
+                        )
+                )
+                Column(
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
+                ) {
                     Surface(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(4.dp)) {
-                        Text("KUMO V2 BUILD", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Text(
+                            "KUMO BETA",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
                     }
                     Spacer(Modifier.height(6.dp))
-                    Text(title.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(title.genres.joinToString(" • "), fontSize = 12.sp, color = Color.LightGray, maxLines = 1)
+                    Text(
+                        title.title,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (title.genres.isNotEmpty()) {
+                        Text(
+                            title.genres.joinToString(" • "),
+                            fontSize = 12.sp,
+                            color = Color.LightGray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Spacer(Modifier.height(10.dp))
-                    Button(onClick = { openTitle(title) }, shape = RoundedCornerShape(20.dp), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)) {
+                    Button(
+                        onClick = { openTitle(title) },
+                        shape = RoundedCornerShape(20.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text("Open", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
@@ -166,65 +235,124 @@ fun HomeScreen(
             }
         }
 
-        Spacer(Modifier.height(10.dp))
-
-        Text("Popular Anime", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        SectionTitle("Popular Anime")
         LazyRow(
             state = popularAnimeState,
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(allTitles.filter { it.type == MediaType.ANIME }, key = { it.id }) { title ->
+            items(popularAnime, key = { it.id }) { title ->
                 TitleCard(title = title, onClick = { openTitle(title) })
             }
         }
 
-        Spacer(Modifier.height(20.dp))
-
         if (settings.showContinueWatching && settings.continueWatching && continueWatchingList.isNotEmpty()) {
-            Text("Continue Watching", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(continueWatchingList) { prog ->
-                    allTitles.firstOrNull { it.id == prog.contentId }?.let { item ->
-                        val epNum = prog.episodeId.substringAfterLast("-").toIntOrNull() ?: 1
-                        val percent = if (prog.durationMs > 0) prog.positionMs.toFloat() / prog.durationMs else 0.5f
+            Spacer(Modifier.height(20.dp))
+            SectionTitle("Continue Watching")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(continueWatchingList, key = { it.contentId + "|" + it.episodeId }) { prog ->
+                    CatalogStoreLookup(context = context, contentId = prog.contentId) { item ->
+                        val epNum = prog.episodeId.substringAfterLast(":").toIntOrNull()
+                            ?: prog.episodeId.substringAfterLast("-").toIntOrNull()
+                            ?: 1
+                        val percent = if (prog.durationMs > 0L) {
+                            (prog.positionMs.toFloat() / prog.durationMs).coerceIn(0f, 1f)
+                        } else {
+                            0.5f
+                        }
                         ContinueWatchingCard(item, epNum, percent) { openTitle(item) }
                     }
                 }
             }
-            Spacer(Modifier.height(20.dp))
         }
 
         if (settings.showPopular) {
-        Text("Popular Right Now", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(allTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
+            Spacer(Modifier.height(20.dp))
+            SectionTitle("Popular Right Now")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(popularTitles, key = { it.id }) { title ->
+                    TitleCard(title = title, onClick = { openTitle(title) })
+                }
+            }
         }
 
+        if (settings.showTrending && trendingTitles.isNotEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            SectionTitle("Trending")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(trendingTitles, key = { it.id }) { title ->
+                    TitleCard(title = title, onClick = { openTitle(title) })
+                }
+            }
         }
 
         if (settings.showTopRated && topTitles.isNotEmpty()) {
-            Text("Top Rated", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(topTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
-            }
             Spacer(Modifier.height(20.dp))
+            SectionTitle("Top Rated")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(topTitles, key = { it.id }) { title ->
+                    TitleCard(title = title, onClick = { openTitle(title) })
+                }
+            }
         }
 
         if (settings.showNewReleases && newTitles.isNotEmpty()) {
-            Text("New Releases", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(newTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
-            }
             Spacer(Modifier.height(20.dp))
+            SectionTitle("New Releases")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(newTitles, key = { it.id }) { title ->
+                    TitleCard(title = title, onClick = { openTitle(title) })
+                }
+            }
         }
 
         if (movieTitles.isNotEmpty()) {
-            Text("Movies", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(movieTitles) { title -> TitleCard(title = title, onClick = { openTitle(title) }) }
+            Spacer(Modifier.height(20.dp))
+            SectionTitle("Movies")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(movieTitles, key = { it.id }) { title ->
+                    TitleCard(title = title, onClick = { openTitle(title) })
+                }
             }
         }
-
     }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+@Composable
+private fun CatalogStoreLookup(
+    context: android.content.Context,
+    contentId: String,
+    content: @Composable (Title) -> Unit
+) {
+    val title = app.kumo.beta.data.CatalogStore.get(contentId)
+    if (title != null) content(title)
 }
