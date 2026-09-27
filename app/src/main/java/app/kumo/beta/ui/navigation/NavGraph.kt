@@ -34,6 +34,7 @@ import app.kumo.beta.extension.ExtensionManager
 import app.kumo.beta.provider.ChapterResolver
 import app.kumo.beta.provider.JikanProvider
 import app.kumo.beta.provider.ProviderEngine
+import app.kumo.beta.provider.ProviderHealthStore
 import app.kumo.beta.provider.ProviderRegistry
 import app.kumo.beta.provider.SourceResolver
 import app.kumo.beta.ui.screens.details.DetailsScreen
