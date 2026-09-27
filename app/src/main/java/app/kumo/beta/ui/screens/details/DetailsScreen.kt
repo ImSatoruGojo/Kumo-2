@@ -60,6 +60,12 @@ fun DetailsScreen(
     var isDescriptionExpanded by remember { mutableStateOf(false) }
     var pendingDownload by remember { mutableStateOf<app.kumo.beta.model.Episode?>(null) }
     val settings = remember { SettingsPreferencesStore(context).get() }
+    val resumeProgress = remember(title.id) {
+        libraryStore.getContinueWatching().firstOrNull { it.contentId == title.id }
+    }
+    val resumeEpisode = remember(title.id, title.episodes, resumeProgress?.episodeId) {
+        resumeProgress?.let { progress -> title.episodes.firstOrNull { it.id == progress.episodeId } }
+    }
 
     LaunchedEffect(title.id, title) {
         savedTitleStore.put(title)
@@ -236,6 +242,17 @@ fun DetailsScreen(
                                 showCategoryMenu = false
                             }
                         )
+                    }
+                }
+                resumeEpisode?.let { episode ->
+                    Button(
+                        onClick = { onEpisodeClick(episode) },
+                        modifier = Modifier.weight(0.8f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Resume E" + episode.number)
                     }
                 }
             }
