@@ -155,6 +155,25 @@ fun SettingsScreen(onExtensionsChanged: () -> Unit = {}) {
                 ChoiceItem("Theme", settings.theme, listOf("Dark", "Light", "System")) { settingsStore.setTheme(it); settings = settingsStore.get() }
                 ChoiceItem("App language", settings.appLanguage, listOf("System", "English")) { settingsStore.setLanguage(it); settings = settingsStore.get() }
                 ChoiceItem("Cache limit", "${settings.cacheLimitMb} MB", listOf("256 MB", "512 MB", "1024 MB", "2048 MB")) { settingsStore.setCacheLimitMb(it.removeSuffix(" MB").toInt()); cacheManager.trimToLimit(settingsStore.get().cacheLimitMb); settings = settingsStore.get() }
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Cached data", color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
+                        Text(
+                            (cacheManager.sizeBytes() / (1024 * 1024)).toString() + " MB currently cached",
+                            color = KumoTextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                    TextButton(onClick = {
+                        val removed = cacheManager.clear()
+                        status = "Cleared " + (removed / (1024 * 1024)).toString() + " MB of cache"
+                    }) {
+                        Text("Clear", color = MaterialTheme.colorScheme.error)
+                    }
+                }
                 SwitchItem("Reduce animations", "Useful on lower end devices", settings.reduceAnimations) { settingsStore.setReduceAnimations(it); settings = settingsStore.get() }
             }
         }
