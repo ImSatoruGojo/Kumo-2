@@ -17,6 +17,7 @@ data class SettingsPreferences(
     val continueWatching: Boolean = true,
     val wifiOnlyDownloads: Boolean = true,
     val confirmDownloads: Boolean = true,
+    val showAdultContent: Boolean = false,
     val reduceAnimations: Boolean = false,
     val amoledMode: Boolean = false,
     val accentColor: String = "White",
@@ -64,6 +65,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
         continueWatching = prefs.getBoolean("continue_watching", true),
         wifiOnlyDownloads = prefs.getBoolean("wifi_only_downloads", true),
         confirmDownloads = prefs.getBoolean("confirm_downloads", true),
+        showAdultContent = prefs.getBoolean("show_adult_content", false),
         reduceAnimations = prefs.getBoolean("reduce_animations", false),
         amoledMode = prefs.getBoolean("amoled_mode", false),
         accentColor = prefs.getString("accent_color", "White") ?: "White",
@@ -107,6 +109,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
     fun setContinueWatching(v: Boolean) = prefs.edit().putBoolean("continue_watching", v).apply()
     fun setWifiOnlyDownloads(v: Boolean) = prefs.edit().putBoolean("wifi_only_downloads", v).apply()
     fun setConfirmDownloads(v: Boolean) = prefs.edit().putBoolean("confirm_downloads", v).apply()
+    fun setShowAdultContent(v: Boolean) = prefs.edit().putBoolean("show_adult_content", v).apply()
     fun setReduceAnimations(v: Boolean) = prefs.edit().putBoolean("reduce_animations", v).apply()
     fun setAmoledMode(v: Boolean) = prefs.edit().putBoolean("amoled_mode", v).apply()
     fun setAccentColor(v: String) = prefs.edit().putString("accent_color", v).apply()
