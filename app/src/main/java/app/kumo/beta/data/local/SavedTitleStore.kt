@@ -77,6 +77,8 @@ class SavedTitleStore(context: Context) {
             }
         })
         put("relatedTitles", JSONArray(title.relatedTitles))
+        put("providerIds", JSONArray(title.providerIds))
+        put("providerTitleIds", JSONObject(title.providerTitleIds))
     }
 
     private fun encodeSeason(season: Season): JSONObject = JSONObject().apply {
@@ -94,6 +96,8 @@ class SavedTitleStore(context: Context) {
         put("thumbnailUrl", episode.thumbnailUrl ?: "")
         episode.durationMs?.let { put("durationMs", it) }
         put("isWatched", episode.isWatched)
+        put("providerIds", JSONArray(episode.providerIds))
+        put("providerEpisodeIds", JSONObject(episode.providerEpisodeIds))
     }
 
     private fun decode(root: JSONObject?): Title? {
@@ -156,7 +160,9 @@ class SavedTitleStore(context: Context) {
                 seasons = seasons,
                 episodes = episodes,
                 chapters = chapters,
-                relatedTitles = stringList(root.optJSONArray("relatedTitles"))
+                relatedTitles = stringList(root.optJSONArray("relatedTitles")),
+                providerIds = stringList(root.optJSONArray("providerIds")),
+                providerTitleIds = stringMap(root.optJSONObject("providerTitleIds"))
             )
         }.getOrNull()
     }
@@ -174,12 +180,17 @@ class SavedTitleStore(context: Context) {
                         description = episode.optString("description").takeIf { it.isNotBlank() },
                         thumbnailUrl = episode.optString("thumbnailUrl").takeIf { it.isNotBlank() },
                         durationMs = episode.optLong("durationMs", 0L).takeIf { it != 0L },
-                        isWatched = episode.optBoolean("isWatched", false)
+                        isWatched = episode.optBoolean("isWatched", false),
+                        providerIds = stringList(episode.optJSONArray("providerIds")),
+                        providerEpisodeIds = stringMap(episode.optJSONObject("providerEpisodeIds"))
                     )
                 )
             }
         }
     }
+
+    private fun stringMap(obj: JSONObject?): Map<String, String> =
+        if (obj == null) emptyMap() else obj.keys().asSequence().associateWith { obj.optString(it) }.filterValues { it.isNotBlank() }
 
     private fun stringList(array: JSONArray?): List<String> =
         if (array == null) emptyList() else (0 until array.length())
