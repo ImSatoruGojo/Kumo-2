@@ -56,18 +56,36 @@ class ProviderEngine(private val registry: ProviderRegistry) {
         val loadedTitles = coroutineScope {
             providers.map { provider ->
                 async {
-                    val loaded = withTimeoutOrNull(12_000L) { provider.load(title) } ?: title
+                    if (title.providerIds.isNotEmpty() && provider.id !in title.providerIds) {
+                        return@async provider to emptyList()
+                    }
+                    val providerTitleId = title.providerTitleIds[provider.id] ?: title.id
+                    val scopedTitle = title.copy(id = providerTitleId)
+                    val loaded = withTimeoutOrNull(12_000L) { provider.load(scopedTitle) } ?: scopedTitle
                     val episodes = withTimeoutOrNull(12_000L) { provider.getEpisodes(loaded) }.orEmpty()
-                    loaded to episodes
+                    provider to episodes
                 }
             }.awaitAll()
         }
 
         val mergedEpisodes = loadedTitles
-            .flatMap { it.second }
+            .flatMap { (provider, episodes) ->
+                episodes.map { episode ->
+                    episode.copy(
+                        providerIds = (episode.providerIds + provider.id).distinct(),
+                        providerEpisodeIds = episode.providerEpisodeIds + (provider.id to episode.id)
+                    )
+                }
+            }
             .groupBy { it.number }
             .mapNotNull { (_, sameNumber) ->
-                sameNumber.firstOrNull { !it.title.isNullOrBlank() } ?: sameNumber.firstOrNull()
+                val best = sameNumber.firstOrNull { !it.title.isNullOrBlank() } ?: sameNumber.firstOrNull()
+                best?.copy(
+                    providerIds = sameNumber.flatMap { it.providerIds }.distinct(),
+                    providerEpisodeIds = sameNumber
+                        .flatMap { it.providerEpisodeIds.entries }
+                        .associate { it.key to it.value }
+                )
             }
             .sortedBy { it.number }
 
@@ -82,15 +100,23 @@ class ProviderEngine(private val registry: ProviderRegistry) {
     }
 
     private fun mergeTitles(results: List<KumoSearchResult>): List<KumoSearchResult> {
-        val merged = LinkedHashMap<String, KumoSearchResult>()
-        results.forEach { result ->
-            val key = normalize(result.title.title)
-            val old = merged[key]
-            if (old == null || score(result.title) > score(old.title)) {
-                merged[key] = result
-            }
+        val grouped = results.groupBy {
+            it.title.type.name + ":" + normalize(it.title.title)
         }
-        return merged.values.toList()
+        return grouped.values.mapNotNull { group ->
+            val best = group.maxByOrNull { score(it.title) } ?: return@mapNotNull null
+            val providerTitleIds = buildMap {
+                group.forEach { put(it.providerId, it.title.id) }
+            }
+            val mergedTitle = best.title.copy(
+                providerIds = group.map { it.providerId }.distinct(),
+                providerTitleIds = providerTitleIds
+            )
+            KumoSearchResult(
+                title = mergedTitle,
+                providerId = best.providerId
+            )
+        }
     }
 
     private fun normalize(value: String) =
