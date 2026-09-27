@@ -57,7 +57,7 @@ fun HomeScreen(
     val settingsStore = remember { SettingsPreferencesStore(context) }
     val settings = settingsStore.get()
     val savedTitleStore = remember { SavedTitleStore(context) }
-    val continueWatchingList = remember { libraryStore.getContinueWatching() }
+    val continueWatchingList = libraryStore.getContinueWatching()
 
     var popularTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var trendingTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
