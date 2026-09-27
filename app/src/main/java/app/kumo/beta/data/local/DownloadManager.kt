@@ -70,7 +70,10 @@ class DownloadManager(context: Context) {
         episodeTitle: String,
         coverUrl: String,
         quality: String,
-        sourceUrl: String
+        sourceUrl: String,
+        headers: Map<String, String> = emptyMap(),
+        referer: String? = null,
+        mimeType: String? = null
     ): Result<DownloadItem> = withContext(Dispatchers.IO) {
         var currentId: String? = null
         runCatching {
@@ -99,12 +102,15 @@ class DownloadManager(context: Context) {
             connection.readTimeout = settings.get().networkTimeoutSeconds * 2000
             connection.instanceFollowRedirects = true
             connection.setRequestProperty("User-Agent", "Kumo/0.1")
+            headers.forEach { (key, value) -> connection.setRequestProperty(key, value) }
+            referer?.let { connection.setRequestProperty("Referer", it) }
             require(connection.responseCode in 200..299) { "Download returned HTTP " + connection.responseCode }
 
             val total = connection.contentLengthLong.coerceAtLeast(0L)
             val tree = storage.getTreeUri() ?: error("Download folder is no longer available")
-            val name = sanitize(title + " - " + episodeTitle) + extensionFor(sourceUrl)
-            val fileUri = DocumentsContract.createDocument(appContext.contentResolver, tree, mimeFor(name), name)
+            val extension = extensionFor(sourceUrl, mimeType)
+            val name = sanitize(title + " - " + episodeTitle) + extension
+            val fileUri = DocumentsContract.createDocument(appContext.contentResolver, tree, mimeFor(name, mimeType), name)
                 ?: error("Unable to create the download file")
 
             var downloaded = 0L
@@ -194,15 +200,18 @@ class DownloadManager(context: Context) {
     private fun sanitize(value: String) =
         value.replace(Regex("[\\/:*?\"<>|]"), "_").trim().take(120).ifBlank { "Kumo Download" }
 
-    private fun extensionFor(url: String) = when {
-        url.contains(".webm", true) -> ".webm"
-        url.contains(".mkv", true) -> ".mkv"
+    private fun extensionFor(url: String, mimeType: String? = null) = when {
+        mimeType.equals("video/webm", true) || url.contains(".webm", true) -> ".webm"
+        mimeType.equals("video/x-matroska", true) || url.contains(".mkv", true) -> ".mkv"
+        mimeType.equals("video/mp2t", true) || url.contains(".ts", true) -> ".ts"
         else -> ".mp4"
     }
 
-    private fun mimeFor(name: String) = when {
+    private fun mimeFor(name: String, mimeType: String? = null) = when {
+        mimeType?.isNotBlank() == true -> mimeType
         name.endsWith(".webm", true) -> "video/webm"
         name.endsWith(".mkv", true) -> "video/x-matroska"
+        name.endsWith(".ts", true) -> "video/mp2t"
         else -> "video/mp4"
     }
 }
