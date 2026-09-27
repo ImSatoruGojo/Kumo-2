@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kumo.beta.data.LibraryStore
+import app.kumo.beta.data.local.SavedTitleStore
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.data.local.LibraryCategory
 import app.kumo.beta.data.local.LibraryManager
@@ -50,6 +51,7 @@ fun DetailsScreen(
     val context = LocalContext.current
     val libManager = remember { LibraryManager(context) }
     val libraryStore = remember { LibraryStore(context) }
+    val savedTitleStore = remember { SavedTitleStore(context) }
 
     var selectedCategory by remember { mutableStateOf(libManager.getCategoryForTitle(title.id)) }
     var isFavorite by remember { mutableStateOf(libManager.isFavorite(title.id)) }
@@ -57,6 +59,10 @@ fun DetailsScreen(
     var isDescriptionExpanded by remember { mutableStateOf(false) }
     var pendingDownload by remember { mutableStateOf<app.kumo.beta.model.Episode?>(null) }
     val settings = remember { SettingsPreferencesStore(context).get() }
+
+    LaunchedEffect(title.id, title) {
+        savedTitleStore.put(title)
+    }
 
     val scrollState = rememberScrollState()
 
@@ -376,7 +382,6 @@ fun DetailsScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                var activeEpisodeToPlay by remember { mutableStateOf<app.kumo.beta.model.Episode?>(null) }
 
                 displayedEpisodes.forEach { ep ->
                     Card(
@@ -384,14 +389,6 @@ fun DetailsScreen(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                             .clickable {
-                                libraryStore.saveProgress(
-                                    Progress(
-                                        contentId = title.id,
-                                        episodeId = ep.id,
-                                        positionMs = 0,
-                                        durationMs = ep.durationMs ?: 0
-                                    )
-                                )
                                 onEpisodeClick(ep)
                             },
                         shape = RoundedCornerShape(8.dp),
