@@ -439,7 +439,7 @@ private fun SwitchItem(label: String, description: String, checked: Boolean, onC
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Text(title, color = KumoTextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
-    Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(vertical = 4.dp), content = content)
+    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(vertical = 4.dp), content = content)
 }
 
 private fun compareVersions(left: String?, right: String?): Int {
