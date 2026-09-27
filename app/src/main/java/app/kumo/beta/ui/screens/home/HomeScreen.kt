@@ -246,8 +246,34 @@ fun HomeScreen(
             }
         }
 
-        SectionTitle("Popular Anime")
-        LazyRow(
+        if (loading && popularAnime.isEmpty()) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (!loading && loadError != null && popularTitles.isEmpty()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(loadError!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(10.dp))
+                OutlinedButton(onClick = {
+                    loading = true
+                    loadError = null
+                }) {
+                    Text("Retry")
+                }
+            }
+        }
+
+        SectionTitle("Popular Anime")        LazyRow(
             state = popularAnimeState,
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
