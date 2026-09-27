@@ -1,6 +1,9 @@
 package app.kumo.beta.ui.screens.player
 
 import android.net.Uri
+import android.os.Build
+import android.view.GestureDetector
+import android.view.MotionEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -14,6 +17,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -25,6 +30,7 @@ import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.Episode
 import app.kumo.beta.model.Progress
 import app.kumo.beta.provider.KumoStreamSource
+import app.kumo.beta.provider.KumoSubtitle
 import app.kumo.beta.provider.SourceResolver
 import app.kumo.beta.ui.theme.KumoBlack
 import app.kumo.beta.ui.theme.KumoPurple
@@ -79,7 +85,7 @@ fun PlayerScreen(
     }
 
     LaunchedEffect(episode.id) {
-        val result = withContext(Dispatchers.IO) { runCatching { sourceResolver.resolve(episode) } }
+        val result = withContext(Dispatchers.IO) { runCatching { sourceResolver.resolve(episode, allowFallback = settings.providerFallback) } }
         result.onSuccess { resolved ->
             val preferredAudio = settings.defaultAudio
             val preferredSubtitle = settings.defaultSubtitle
@@ -120,10 +126,16 @@ fun PlayerScreen(
                 )
                 .build()
                 .apply {
+                    val subtitleConfigurations = if (settings.defaultSubtitle == "Off") {
+                        emptyList()
+                    } else {
+                        it.subtitles.mapNotNull(::subtitleConfiguration)
+                    }
                     setMediaItem(
                         MediaItem.Builder()
                             .setUri(Uri.parse(it.url))
                             .setMimeType(it.mimeType)
+                            .setSubtitleConfigurations(subtitleConfigurations)
                             .build()
                     )
                     prepare()
@@ -221,6 +233,30 @@ fun PlayerScreen(
                     PlayerView(ctx).apply {
                         this.player = player
                         useController = !locked
+                        val detector = GestureDetector(
+                            ctx,
+                            object : GestureDetector.SimpleOnGestureListener() {
+                                override fun onDoubleTap(event: MotionEvent): Boolean {
+                                    if (locked) return false
+                                    val delta = preferences.seekSeconds * 1000L
+                                    if (event.x < width / 2f) {
+                                        player.seekTo((player.currentPosition - delta).coerceAtLeast(0L))
+                                    } else {
+                                        val target = player.currentPosition + delta
+                                    player.seekTo(
+                                            target.coerceAtMost(
+                                                player.duration.takeIf { it > 0L } ?: target
+                                            )
+                                        )
+                                    }
+                                    return true
+                                }
+                            }
+                        )
+                        setOnTouchListener { _, event ->
+                            detector.onTouchEvent(event)
+                            false
+                        }
                     }
                 },
                 update = { it.useController = !locked },
@@ -256,7 +292,7 @@ fun PlayerScreen(
                 var speedMenu by remember { mutableStateOf(false) }
                 Box {
                     OutlinedButton(onClick = { speedMenu = true }) {
-                        Text("${preferences.playbackSpeed}x")
+                        Text(speedLabel(preferences.playbackSpeed))
                     }
                     DropdownMenu(expanded = speedMenu, onDismissRequest = { speedMenu = false }) {
                         listOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEach { speed ->
@@ -324,4 +360,23 @@ fun PlayerScreen(
             }
         )
     }
+}
+
+
+private fun speedLabel(speed: Float): String =
+    if (speed % 1f == 0f) speed.toInt().toString() + "x" else speed.toString() + "x"
+
+private fun subtitleConfiguration(subtitle: KumoSubtitle): MediaItem.SubtitleConfiguration? {
+    val cleanUrl = subtitle.url.substringBefore("?")
+    val mime = when {
+        subtitle.format.equals("vtt", ignoreCase = true) || cleanUrl.endsWith(".vtt", ignoreCase = true) -> MimeTypes.TEXT_VTT
+        subtitle.format.equals("srt", ignoreCase = true) || cleanUrl.endsWith(".srt", ignoreCase = true) -> MimeTypes.APPLICATION_SUBRIP
+        subtitle.format.equals("ttml", ignoreCase = true) || cleanUrl.endsWith(".ttml", ignoreCase = true) -> MimeTypes.APPLICATION_TTML
+        else -> return null
+    }
+    return MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitle.url))
+        .setMimeType(mime)
+        .setLanguage(subtitle.language)
+        .setSelectionFlags(MediaItem.SubtitleConfiguration.SELECTION_FLAG_DEFAULT)
+        .build()
 }
