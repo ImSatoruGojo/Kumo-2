@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -51,7 +52,8 @@ fun LibraryScreen(
     val context = LocalContext.current
     val libraryManager = remember { LibraryManager(context) }
     val savedTitleStore = remember { SavedTitleStore(context) }
-    val settings = remember { SettingsPreferencesStore(context).get() }
+    val settingsStore = remember { SettingsPreferencesStore(context) }
+    val settings = settingsStore.get()
     var selectedTab by remember { mutableIntStateOf(0) }
 
     val categories = LibraryCategory.entries
@@ -59,6 +61,13 @@ fun LibraryScreen(
     val titleIds = libraryManager.getTitlesInCategory(currentCategory).toList()
     val titlesInCategory = titleIds.mapNotNull { id ->
         CatalogStore.get(id) ?: savedTitleStore.get(id)?.also(CatalogStore::put)
+    }.let { titles ->
+        when (settings.librarySortOrder) {
+            "Recently added" -> titles.sortedByDescending { it.id }
+            "Rating" -> titles.sortedByDescending { it.rating ?: -1f }
+            "Year" -> titles.sortedByDescending { it.year ?: 0 }
+            else -> titles.sortedBy { it.title.lowercase() }
+        }
     }
 
     Column(
@@ -84,6 +93,23 @@ fun LibraryScreen(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = {
+                val next = when (settings.librarySortOrder) {
+                    "Title A to Z" -> "Recently added"
+                    "Recently added" -> "Rating"
+                    "Rating" -> "Year"
+                    else -> "Title A to Z"
+                }
+                settingsStore.setLibrarySortOrder(next)
+            }) {
+                Text("Sort: " + settings.librarySortOrder)
             }
         }
 
