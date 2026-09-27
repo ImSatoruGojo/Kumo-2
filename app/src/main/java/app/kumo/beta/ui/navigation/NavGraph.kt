@@ -289,7 +289,23 @@ fun KumoNavGraph() {
                         title = title,
                         chapter = chapter,
                         chapterResolver = chapterResolver,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onPreviousChapter = {
+                            val ordered = title.chapters.sortedBy { it.number }
+                            val index = ordered.indexOfFirst { it.id == chapter.id }
+                            val previous = ordered.getOrNull(index - 1)
+                            if (previous != null) navController.navigate("manga/" + titleId + "/" + previous.id) {
+                                popUpTo("manga/" + titleId + "/" + chapterId) { inclusive = true }
+                            }
+                        },
+                        onNextChapter = {
+                            val ordered = title.chapters.sortedBy { it.number }
+                            val index = ordered.indexOfFirst { it.id == chapter.id }
+                            val next = ordered.getOrNull(index + 1)
+                            if (next != null) navController.navigate("manga/" + titleId + "/" + next.id) {
+                                popUpTo("manga/" + titleId + "/" + chapterId) { inclusive = true }
+                            }
+                        }
                     )
                 }
             }
