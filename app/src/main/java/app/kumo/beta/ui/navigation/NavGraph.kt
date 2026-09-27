@@ -307,7 +307,7 @@ fun KumoNavGraph() {
             ) { backStackEntry ->
                 val titleId = backStackEntry.arguments?.getString("titleId") ?: return@composable
                 val episodeId = backStackEntry.arguments?.getString("episodeId") ?: return@composable
-                val title = CatalogStore.get(titleId)
+                val title = CatalogStore.get(titleId) ?: savedTitleStore.get(titleId)?.also(CatalogStore::put)
                 val episode = title?.episodes?.firstOrNull { it.id == episodeId }
                 if (episode != null) {
                     PlayerScreen(
