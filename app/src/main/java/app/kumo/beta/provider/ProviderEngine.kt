@@ -129,7 +129,7 @@ class ProviderEngine(private val registry: ProviderRegistry, private val health:
                     )
                 }
             }
-            .groupBy { it.number }
+            .groupBy { (it.seasonNumber ?: 1) to it.number }
             .mapNotNull { (_, sameNumber) ->
                 val best = sameNumber.firstOrNull { !it.title.isNullOrBlank() } ?: sameNumber.firstOrNull()
                 best?.copy(
@@ -139,18 +139,36 @@ class ProviderEngine(private val registry: ProviderRegistry, private val health:
                         .associate { it.key to it.value }
                 )
             }
-            .sortedBy { it.number }
+            .sortedWith(compareBy({ it.seasonNumber ?: 1 }, { it.number }))
 
         val bestLoaded = loadedTitles
             .map { it.first }
             .maxByOrNull { score(it) }
             ?: title
 
+        val finalEpisodes = if (mergedEpisodes.isNotEmpty()) mergedEpisodes else bestLoaded.episodes
+        val finalSeasons = if (finalEpisodes.any { it.seasonNumber != null }) {
+            finalEpisodes
+                .groupBy { it.seasonNumber ?: 1 }
+                .toSortedMap()
+                .map { (season, eps) ->
+                    app.kumo.beta.model.Season(
+                        seasonNumber = season,
+                        name = "Season " + season,
+                        status = "Not Started",
+                        episodes = eps.sortedBy { it.number }
+                    )
+                }
+        } else {
+            bestLoaded.seasons
+        }
+
         bestLoaded.copy(
             id = title.id,
             providerIds = title.providerIds.ifEmpty { listOf(loadedTitles.maxByOrNull { score(it.first) }?.first?.id ?: bestLoaded.id) },
             providerTitleIds = title.providerTitleIds,
-            episodes = if (mergedEpisodes.isNotEmpty()) mergedEpisodes else bestLoaded.episodes
+            episodes = finalEpisodes,
+            seasons = finalSeasons
         )
     }
 
