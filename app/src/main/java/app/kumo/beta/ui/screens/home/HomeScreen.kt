@@ -65,6 +65,8 @@ fun HomeScreen(
     var newTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var movieTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var mangaTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    var showTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
+    var cartoonTitles by remember { mutableStateOf<List<Title>>(emptyList()) }
     var featuredTitle by remember { mutableStateOf<Title?>(null) }
     var loading by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
@@ -80,18 +82,22 @@ fun HomeScreen(
             val top = async { runCatching { engine.catalog("top_rated", MediaType.ANIME) }.getOrDefault(emptyList()) }
             val newest = async { runCatching { engine.catalog("new_releases", MediaType.ANIME) }.getOrDefault(emptyList()) }
             val movies = async { runCatching { engine.catalog("popular", MediaType.MOVIE) }.getOrDefault(emptyList()) }
+            val shows = async { runCatching { engine.catalog("popular", MediaType.SHOW) }.getOrDefault(emptyList()) }
+            val cartoons = async { runCatching { engine.catalog("popular", MediaType.CARTOON) }.getOrDefault(emptyList()) }
             val manga = async { runCatching { engine.catalog("popular", MediaType.MANGA) }.getOrDefault(emptyList()) }
-            listOf(popular.await(), trending.await(), top.await(), newest.await(), movies.await(), manga.await())
+            listOf(popular.await(), trending.await(), top.await(), newest.await(), movies.await(), shows.await(), cartoons.await(), manga.await())
         }
         popularTitles = loaded[0].map { it.title }.distinctBy { it.id }
         trendingTitles = loaded[1].map { it.title }.distinctBy { it.id }
         topTitles = loaded[2].map { it.title }.distinctBy { it.id }
         newTitles = loaded[3].map { it.title }.distinctBy { it.id }
         movieTitles = loaded[4].map { it.title }.distinctBy { it.id }
-        mangaTitles = loaded[5].map { it.title }.distinctBy { it.id }
+        showTitles = loaded[5].map { it.title }.distinctBy { it.id }
+        cartoonTitles = loaded[6].map { it.title }.distinctBy { it.id }
+        mangaTitles = loaded[7].map { it.title }.distinctBy { it.id }
         featuredTitle = popularTitles.firstOrNull()
         loading = false
-        if (popularTitles.isEmpty() && trendingTitles.isEmpty() && topTitles.isEmpty() && newTitles.isEmpty() && movieTitles.isEmpty() && mangaTitles.isEmpty()) {
+        if (popularTitles.isEmpty() && trendingTitles.isEmpty() && topTitles.isEmpty() && newTitles.isEmpty() && movieTitles.isEmpty() && showTitles.isEmpty() && cartoonTitles.isEmpty() && mangaTitles.isEmpty()) {
             loadError = "No catalog data is available from the enabled providers"
         }
     }
@@ -375,6 +381,32 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(movieTitles, key = { it.id }) { title ->
+                    TitleCard(title = title, onClick = { openTitle(title) })
+                }
+            }
+        }
+
+        if (showTitles.isNotEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            SectionTitle("TV Shows")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(showTitles, key = { it.id }) { title ->
+                    TitleCard(title = title, onClick = { openTitle(title) })
+                }
+            }
+        }
+
+        if (cartoonTitles.isNotEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            SectionTitle("Cartoons")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(cartoonTitles, key = { it.id }) { title ->
                     TitleCard(title = title, onClick = { openTitle(title) })
                 }
             }
