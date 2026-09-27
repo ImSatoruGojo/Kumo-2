@@ -355,7 +355,7 @@ private fun ExtensionRow(
     }
     val updateAvailable = installedRecord != null && (
         (extension.versionCode != null && installedRecord.versionCode != null && extension.versionCode > installedRecord.versionCode) ||
-            versionRank(extension.version) > versionRank(installedRecord.version)
+            compareVersions(extension.version, installedRecord.version) > 0
         )
 
     Column(Modifier.fillMaxWidth().background(KumoCard, RoundedCornerShape(14.dp)).padding(14.dp)) {
@@ -445,13 +445,16 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
 }
 
 @Composable
-private fun versionRank(version: String?): List<Int> =
-    version.orEmpty()
-        .split(Regex("[^0-9]+"))
-        .filter { it.isNotBlank() }
-        .take(4)
-        .mapNotNull { it.toIntOrNull() }
-        .let { it + List((4 - it.size).coerceAtLeast(0)) { 0 } }
+private fun compareVersions(left: String?, right: String?): Int {
+    val a = left.orEmpty().split(Regex("[^0-9]+")).filter { it.isNotBlank() }.mapNotNull { it.toIntOrNull() }
+    val b = right.orEmpty().split(Regex("[^0-9]+")).filter { it.isNotBlank() }.mapNotNull { it.toIntOrNull() }
+    for (i in 0 until maxOf(a.size, b.size)) {
+        val av = a.getOrNull(i) ?: 0
+        val bv = b.getOrNull(i) ?: 0
+        if (av != bv) return av.compareTo(bv)
+    }
+    return 0
+}
 
 private fun SettingsItem(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
