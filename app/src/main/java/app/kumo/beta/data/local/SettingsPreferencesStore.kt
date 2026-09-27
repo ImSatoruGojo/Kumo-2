@@ -11,6 +11,7 @@ data class SettingsPreferences(
     val skipOpening: Boolean = false,
     val defaultAudio: String = "Auto",
     val defaultSubtitle: String = "Auto",
+    val subtitleLanguage: String = "English",
     val animeLanguage: String = "Dub",
     val movieLanguage: String = "Dub",
     val autoMarkWatched: Boolean = true,
@@ -60,6 +61,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
         skipOpening = prefs.getBoolean("skip_opening", false),
         defaultAudio = prefs.getString("audio", "Auto") ?: "Auto",
         defaultSubtitle = prefs.getString("subtitle", "Auto") ?: "Auto",
+        subtitleLanguage = prefs.getString("subtitle_language", "English") ?: "English",
         animeLanguage = prefs.getString("anime_language", "Dub") ?: "Dub",
         movieLanguage = prefs.getString("movie_language", "Dub") ?: "Dub",
         autoMarkWatched = prefs.getBoolean("auto_mark_watched", true),
@@ -105,6 +107,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
     fun setSkipOpening(v: Boolean) = prefs.edit().putBoolean("skip_opening", v).apply()
     fun setAudio(v: String) = prefs.edit().putString("audio", v).apply()
     fun setSubtitle(v: String) = prefs.edit().putString("subtitle", v).apply()
+    fun setSubtitleLanguage(v: String) = prefs.edit().putString("subtitle_language", v).apply()
     fun setAnimeLanguage(v: String) = prefs.edit().putString("anime_language", v).apply()
     fun setMovieLanguage(v: String) = prefs.edit().putString("movie_language", v).apply()
     fun setAutoMarkWatched(v: Boolean) = prefs.edit().putBoolean("auto_mark_watched", v).apply()
