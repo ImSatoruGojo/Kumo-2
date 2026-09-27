@@ -27,7 +27,11 @@ data class DownloadItem(
     val speed: String = "0 KB/s",
     val eta: String = "--",
     val fileUri: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    val sourceUrl: String? = null,
+    val headers: Map<String, String> = emptyMap(),
+    val referer: String? = null,
+    val mimeType: String? = null
 )
 
 class DownloadManager(context: Context) {
@@ -57,8 +61,13 @@ class DownloadManager(context: Context) {
                         speed = o.optString("speed", "0 KB/s"),
                         eta = o.optString("eta", "--"),
                         fileUri = o.optString("fileUri").takeIf { it.isNotBlank() },
-                        error = o.optString("error").takeIf { it.isNotBlank() }
-                    ))
+                        error = o.optString("error").takeIf { it.isNotBlank() },
+                        sourceUrl = o.optString("sourceUrl").takeIf { it.isNotBlank() },
+                        headers = o.optJSONObject("headers")?.let { obj ->
+                            obj.keys().asSequence().associateWith { key -> obj.optString(key) }
+                        } ?: emptyMap(),
+                        referer = o.optString("referer").takeIf { it.isNotBlank() },
+                        mimeType = o.optString("mimeType").takeIf { it.isNotBlank() }                    ))
                 }
             }
         }.getOrDefault(emptyList())
@@ -102,7 +111,11 @@ class DownloadManager(context: Context) {
                 quality = quality,
                 totalBytes = 0L,
                 downloadedBytes = 0L,
-                status = DownloadStatus.DOWNLOADING
+                status = DownloadStatus.DOWNLOADING,
+                sourceUrl = sourceUrl,
+                headers = headers,
+                referer = referer,
+                mimeType = mimeType
             )
             currentId = item.id
             upsert(item)
