@@ -19,28 +19,46 @@ class SourceResolver(private val registry: ProviderRegistry) {
 
         val selectedProviders = if (allowFallback) providers else providers.take(1)
 
-        coroutineScope {
-            selectedProviders
-                .map { provider ->
-                    async {
-                        withTimeoutOrNull(12_000L) {
-                            runCatching { provider.getSources(episode) }.getOrDefault(emptyList())
+        val rawSources = coroutineScope {
+            selectedProviders.flatMap { provider ->
+                val sources = withTimeoutOrNull(12_000L) {
+                    runCatching { provider.getSources(episode) }.getOrDefault(emptyList())
+                }.orEmpty()
+                sources.map { source ->
+                    val providerId = source.providerId.ifBlank { provider.id }
+                    source.copy(providerId = providerId)
+                }
+            }
+        }
+
+        val enrichedSources = coroutineScope {
+            rawSources.map { source ->
+                async {
+                    val providerIds = source.providerId.split(" + ").filter { it.isNotBlank() }
+                    val provider = providerIds.asSequence()
+                        .mapNotNull(registry::getProvider)
+                        .firstOrNull()
+                    if (provider == null || source.subtitles.isNotEmpty()) {
+                        source
+                    } else {
+                        val subtitles = withTimeoutOrNull(8_000L) {
+                            runCatching { provider.getSubtitles(source) }.getOrDefault(emptyList())
                         }.orEmpty()
+                        source.copy(subtitles = subtitles)
                     }
                 }
-                .awaitAll()
-                .flatten()
-                .groupBy { source ->
-                    source.url.trim()
-                }
-                .map { (_, sameUrl) -> combine(sameUrl) }
-                .sortedWith(
-                    compareByDescending<KumoStreamSource> { it.audioType.equals("Dub", ignoreCase = true) }
-                        .thenByDescending { it.quality ?: 0 }
-                        .thenBy { it.language ?: "" }
-                        .thenBy { it.providerId }
-                )
+            }.awaitAll()
         }
+
+        return@withContext enrichedSources
+            .groupBy { source -> source.url.trim() }
+            .map { (_, sameUrl) -> combine(sameUrl) }
+            .sortedWith(
+                compareByDescending<KumoStreamSource> { it.audioType.equals("Dub", ignoreCase = true) }
+                    .thenByDescending { it.quality ?: 0 }
+                    .thenBy { it.language ?: "" }
+                    .thenBy { it.providerId }
+            )
     }
 
     private fun combine(sources: List<KumoStreamSource>): KumoStreamSource {
