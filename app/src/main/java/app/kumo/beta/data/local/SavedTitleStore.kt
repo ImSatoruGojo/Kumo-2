@@ -91,6 +91,7 @@ class SavedTitleStore(context: Context) {
     private fun encodeEpisode(episode: Episode): JSONObject = JSONObject().apply {
         put("id", episode.id)
         put("number", episode.number)
+        episode.seasonNumber?.let { put("seasonNumber", it) }
         put("title", episode.title ?: "")
         put("description", episode.description ?: "")
         put("thumbnailUrl", episode.thumbnailUrl ?: "")
@@ -177,6 +178,7 @@ class SavedTitleStore(context: Context) {
                         id = episode.optString("id"),
                         number = episode.optInt("number", i + 1),
                         title = episode.optString("title").takeIf { it.isNotBlank() },
+                        seasonNumber = episode.optInt("seasonNumber", 0).takeIf { it != 0 },
                         description = episode.optString("description").takeIf { it.isNotBlank() },
                         thumbnailUrl = episode.optString("thumbnailUrl").takeIf { it.isNotBlank() },
                         durationMs = episode.optLong("durationMs", 0L).takeIf { it != 0L },
