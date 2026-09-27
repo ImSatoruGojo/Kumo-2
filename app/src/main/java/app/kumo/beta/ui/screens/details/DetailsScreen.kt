@@ -300,7 +300,7 @@ fun DetailsScreen(
                 list
             }
 
-            if (currentSeasons.isNotEmpty()) {
+            if (title.episodes.isNotEmpty() || title.seasons.isNotEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Card(
                         modifier = Modifier.fillMaxWidth().clickable { showSeasonMenu = true },
