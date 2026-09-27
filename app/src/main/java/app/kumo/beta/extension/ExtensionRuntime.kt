@@ -1,6 +1,7 @@
 package app.kumo.beta.extension
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
 import app.kumo.beta.provider.KumoProvider
 import app.kumo.beta.provider.ProviderRegistry
@@ -25,12 +26,15 @@ class ExtensionRuntime(
         val error: String? = null
     )
 
-    enum class Format { KUMO_NATIVE, CLOUDSTREAM, UNKNOWN }
+    enum class Format { KUMO_NATIVE, CLOUDSTREAM, ANIYOMI, UNKNOWN }
 
     private data class Loaded(val extension: KumoExtension, val providerIds: List<String>)
     private val loaded = ConcurrentHashMap<String, Loaded>()
 
     fun inspect(file: File, fallbackId: String): RuntimeInfo {
+        if (file.extension.equals("apk", ignoreCase = true) || fallbackId.startsWith("aniyomi:", true)) {
+            inspectAniyomiApk(file, fallbackId)?.let { return it }
+        }
         val manifest = readManifest(file)
             ?: return RuntimeInfo(file, fallbackId, fallbackId, null, Format.UNKNOWN, false, 0, "No manifest.json found")
         val name = manifest.optString("name").ifBlank { fallbackId }
@@ -43,6 +47,9 @@ class ExtensionRuntime(
     }
 
     fun load(file: File, fallbackId: String): RuntimeInfo {
+        if (file.extension.equals("apk", ignoreCase = true) || fallbackId.startsWith("aniyomi:", true)) {
+            return RuntimeInfo(file, fallbackId, fallbackId, null, Format.ANIYOMI, false, 0, "Aniyomi source APK detected; runtime adapter required")
+        }
         val manifest = readManifest(file)
             ?: return RuntimeInfo(file, fallbackId, fallbackId, null, Format.UNKNOWN, false, 0, "No manifest.json found")
 
@@ -69,6 +76,22 @@ class ExtensionRuntime(
         }
     }
 
+    private fun inspectAniyomiApk(file: File, fallbackId: String): RuntimeInfo? {
+        if (!file.exists()) return null
+        val info = runCatching {
+            context.packageManager.getPackageArchiveInfo(file.absolutePath, PackageManager.GET_META_DATA)
+        }.getOrNull() ?: return null
+        val metadata = info.applicationInfo?.metaData
+        val animeClass = metadata?.getString("tachiyomi.animeextension.class")
+        val mangaClass = metadata?.getString("tachiyomi.extension.class")
+        val name = runCatching { info.applicationInfo?.loadLabel(context.packageManager)?.toString() }.getOrNull().orEmpty().ifBlank { fallbackId }
+        val kind = when {
+            !animeClass.isNullOrBlank() -> "anime"
+            !mangaClass.isNullOrBlank() -> "manga"
+            else -> "unknown"
+        }
+        return RuntimeInfo(file, fallbackId, name, info.versionName, Format.ANIYOMI, false, 0, "Aniyomi $kind extension detected; runtime adapter required")
+    }
     fun unload(file: File): Boolean {
         val item = loaded.remove(file.absolutePath) ?: return false
         item.providerIds.forEach(registry::unregisterProvider)
