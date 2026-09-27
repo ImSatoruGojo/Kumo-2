@@ -36,6 +36,14 @@ class LibraryStore(context: Context) {
         prefs.edit().remove("progress").remove("watched").apply()
     }
 
+    fun clearProgress() {
+        prefs.edit().remove("progress").apply()
+    }
+
+    fun clearWatched() {
+        prefs.edit().remove("watched").apply()
+    }
+
     fun getContinueWatching(): List<Progress> =
         getProgress().filter { it.durationMs <= 0L || it.positionMs < (it.durationMs * 0.9f).toLong() }
             .filterNot { isWatched(it.contentId, it.episodeId) }
