@@ -187,6 +187,24 @@ class DownloadManager(context: Context) {
         }
     }
 
+    suspend fun retryDownload(id: String): Result<DownloadItem> {
+        val item = getDownloads().firstOrNull { it.id == id }
+            ?: return Result.failure(IllegalArgumentException("Download not found"))
+        val sourceUrl = item.sourceUrl
+            ?: return Result.failure(IllegalStateException("The original download source is unavailable"))
+        return downloadDirect(
+            mediaId = item.mediaId,
+            title = item.title,
+            episodeTitle = item.episodeTitle,
+            coverUrl = item.coverUrl,
+            quality = item.quality,
+            sourceUrl = sourceUrl,
+            headers = item.headers,
+            referer = item.referer,
+            mimeType = item.mimeType
+        )
+    }
+
     fun pauseDownload(id: String) = update(id) { it.copy(status = DownloadStatus.PAUSED, speed = "0 KB/s", eta = "Paused") }
 
     fun resumeDownload(id: String) = update(id) { it.copy(status = DownloadStatus.DOWNLOADING, speed = "Downloading", eta = "Active") }
@@ -216,6 +234,8 @@ class DownloadManager(context: Context) {
                 put("coverUrl", d.coverUrl); put("quality", d.quality); put("totalBytes", d.totalBytes)
                 put("downloadedBytes", d.downloadedBytes); put("status", d.status.name); put("speed", d.speed); put("eta", d.eta)
                 put("fileUri", d.fileUri ?: ""); put("error", d.error ?: "")
+                put("sourceUrl", d.sourceUrl ?: ""); put("referer", d.referer ?: ""); put("mimeType", d.mimeType ?: "")
+                put("headers", org.json.JSONObject().apply { d.headers.forEach { (key, value) -> put(key, value) } })
             })
         }
         prefs.edit().putString("custom_dls", array.toString()).apply()
