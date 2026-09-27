@@ -43,7 +43,7 @@ fun TitleCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(height)
-                    .background(Color(0xFF1A1A1A))
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
                 if (!title.posterUrl.isNullOrEmpty()) {
                     AsyncImage(
@@ -59,8 +59,8 @@ fun TitleCard(
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        Color(0xFF333333),
-                                        Color(0xFF000000)
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.background
                                     )
                                 )
                             ),
