@@ -100,7 +100,11 @@ fun HomeScreen(
         while (isActive) {
             delay(3500)
             val next = (popularAnimeState.firstVisibleItemIndex + 1) % popularAnime.size
-            popularAnimeState.animateScrollToItem(next)
+            if (settings.reduceAnimations) {
+                popularAnimeState.scrollToItem(next)
+            } else {
+                popularAnimeState.animateScrollToItem(next)
+            }
         }
     }
 
