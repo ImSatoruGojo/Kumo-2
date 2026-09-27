@@ -66,8 +66,9 @@ fun HomeScreen(
     var featuredTitle by remember { mutableStateOf<Title?>(null) }
     var loading by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
+    var refreshNonce by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(providerEngine) {
+    LaunchedEffect(providerEngine, refreshNonce) {
         val engine = providerEngine ?: return@LaunchedEffect
         loading = true
         loadError = null
@@ -265,8 +266,7 @@ fun HomeScreen(
                 Text(loadError!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(10.dp))
                 OutlinedButton(onClick = {
-                    loading = true
-                    loadError = null
+                    refreshNonce++
                 }) {
                     Text("Retry")
                 }
