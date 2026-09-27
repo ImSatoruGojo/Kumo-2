@@ -33,6 +33,7 @@ import app.kumo.beta.data.LibraryStore
 import app.kumo.beta.data.PlaybackPreferencesStore
 import app.kumo.beta.data.local.SettingsPreferencesStore
 import app.kumo.beta.model.Episode
+import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Progress
 import app.kumo.beta.provider.KumoStreamSource
 import app.kumo.beta.provider.KumoSubtitle
@@ -48,6 +49,7 @@ import kotlinx.coroutines.withContext
 fun PlayerScreen(
     contentId: String,
     episode: Episode,
+    mediaType: MediaType? = null,
     sourceResolver: SourceResolver,
     onBack: () -> Unit,
     onEpisodeEnded: () -> Unit = {}
@@ -57,6 +59,11 @@ fun PlayerScreen(
     val playbackPreferences = remember { PlaybackPreferencesStore(context) }
     val settingsStore = remember { SettingsPreferencesStore(context) }
     val settings = settingsStore.get()
+    val effectiveAudio = when (mediaType) {
+        MediaType.ANIME -> settings.animeLanguage
+        MediaType.MOVIE, MediaType.TV_SHOW, MediaType.CARTOON -> settings.movieLanguage
+        else -> settings.defaultAudio
+    }.let { if (it == "Auto") settings.defaultAudio else it }
 
     var sources by remember(episode.id) { mutableStateOf<List<KumoStreamSource>>(emptyList()) }
     var selected by remember(episode.id) { mutableStateOf<KumoStreamSource?>(null) }
@@ -69,7 +76,7 @@ fun PlayerScreen(
         playbackSpeed = settings.playbackSpeed,
         seekSeconds = settings.doubleTapSeekSeconds,
         autoplayNext = settings.autoplayNext,
-        preferredAudio = settings.defaultAudio.takeIf { it != "Auto" },
+        preferredAudio = effectiveAudio.takeIf { it != "Auto" },
         preferredSubtitle = settings.defaultSubtitle.takeIf { it != "Auto" }
     )
     DisposableEffect(settings.screenRotation) {
@@ -106,7 +113,7 @@ fun PlayerScreen(
     LaunchedEffect(episode.id) {
         val result = withContext(Dispatchers.IO) { runCatching { sourceResolver.resolve(episode, allowFallback = settings.providerFallback) } }
         result.onSuccess { resolved ->
-            val preferredAudio = settings.defaultAudio
+            val preferredAudio = effectiveAudio
             val preferredSubtitle = settings.defaultSubtitle
             val preferred = resolved.sortedByDescending { source ->
                 var score = source.quality?.let { quality ->
