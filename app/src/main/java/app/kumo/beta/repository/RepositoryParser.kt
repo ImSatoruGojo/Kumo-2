@@ -26,7 +26,11 @@ object RepositoryParser {
     }
 
     private fun parseCloudStreamRepo(url: String, root: JSONObject): RepositoryResult {
-        val lists = root.optJSONArray("pluginLists") ?: JSONArray()
+        val lists = when (val raw = root.opt("pluginLists")) {
+            is JSONArray -> raw
+            is String -> JSONArray().put(raw)
+            else -> JSONArray()
+        }
         val extensions = mutableListOf<ExtensionInfo>()
         for (i in 0 until lists.length()) {
             val listUrl = resolve(url, lists.optString(i))
@@ -46,6 +50,9 @@ object RepositoryParser {
 
             val array = runCatching { JSONArray(list) }.getOrNull() ?: continue
             extensions += cloudStreamEntries(url, listUrl, array)
+        }
+        if (extensions.isEmpty()) {
+            return RepositoryResult.Failure(RepositoryResult.Reason.EMPTY_REPOSITORY, "No CloudStream extensions found")
         }
         return RepositoryResult.Success(
             Repository(
@@ -77,6 +84,7 @@ object RepositoryParser {
                         type = RepositoryType.CLOUDSTREAM_PLUGIN_LIST,
                         downloadUrl = resolve(baseUrl, download),
                         version = o.optString("version").takeIf { it.isNotBlank() },
+                        versionCode = if (o.has("version")) o.optLong("version") else null,
                         language = o.optString("language").takeIf { it.isNotBlank() },
                         description = o.optString("description").takeIf { it.isNotBlank() },
                         iconUrl = o.optString("iconUrl").takeIf { it.isNotBlank() },
