@@ -80,6 +80,15 @@ class DownloadManager(context: Context) {
             require(storage.hasValidLocation()) { "Choose a download folder in Settings first" }
             require(isNetworkAllowed()) { "Downloads are restricted to Wi Fi while Wi Fi only is enabled" }
             require(sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://")) { "Invalid download URL" }
+            getDownloads().firstOrNull {
+                it.mediaId == mediaId &&
+                    it.episodeTitle == episodeTitle &&
+                    it.quality == quality &&
+                    it.status == DownloadStatus.COMPLETED &&
+                    !it.fileUri.isNullOrBlank()
+            }?.let { existing ->
+                return@runCatching existing
+            }
             require(downloadSlots.tryAcquire()) { "Download queue is full; try again when an active download finishes" }
 
             val item = DownloadItem(
