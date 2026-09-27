@@ -72,6 +72,13 @@ fun KumoNavGraph() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val showBottomBar = bottomScreens.any { it.route == currentRoute } || currentRoute == "search/filters"
+
+    LaunchedEffect(currentRoute, settings.rememberLastScreen) {
+        if (settings.rememberLastScreen && bottomScreens.any { it.route == currentRoute }) {
+            settingsStore.setLastScreen(currentRoute.orEmpty())
+        }
+    }
+
     val providerRegistry = remember { ProviderRegistry().apply { registerProvider(JikanProvider()) } }
     val extensionManager = remember { ExtensionManager(context, providerRegistry) }
     val providerEngine = remember { ProviderEngine(providerRegistry) }
@@ -139,7 +146,11 @@ fun KumoNavGraph() {
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = if (settings.startupPage == "Library") Screen.Library.route else Screen.Home.route,
+            startDestination = when {
+                settings.rememberLastScreen && bottomScreens.any { it.route == settings.lastScreen } -> settings.lastScreen
+                settings.startupPage == "Library" -> Screen.Library.route
+                else -> Screen.Home.route
+            },
             modifier = Modifier.padding(padding)
         ) {
             composable(Screen.Home.route) {
