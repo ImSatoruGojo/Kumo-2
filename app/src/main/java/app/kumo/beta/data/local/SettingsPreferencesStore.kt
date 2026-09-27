@@ -33,6 +33,7 @@ data class SettingsPreferences(
     val showRecommended: Boolean = true,
     val itemsPerRow: Int = 2,
     val historySize: Int = 50,
+    val librarySortOrder: String = "Title A to Z",
     val providerFallback: Boolean = true,
     val playerDecoder: String = "Hardware",
     val gestureVolume: Boolean = true,
@@ -82,6 +83,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
         showRecommended = prefs.getBoolean("show_recommended", true),
         itemsPerRow = prefs.getInt("items_per_row", 2),
         historySize = prefs.getInt("history_size", 50),
+        librarySortOrder = prefs.getString("library_sort_order", "Title A to Z") ?: "Title A to Z",
         providerFallback = prefs.getBoolean("provider_fallback", true),
         playerDecoder = prefs.getString("player_decoder", "Hardware") ?: "Hardware",
         gestureVolume = prefs.getBoolean("gesture_volume", true),
@@ -127,6 +129,7 @@ class SettingsPreferencesStore(context: android.content.Context) {
     fun setShowRecommended(v: Boolean) = prefs.edit().putBoolean("show_recommended", v).apply()
     fun setItemsPerRow(v: Int) = prefs.edit().putInt("items_per_row", v).apply()
     fun setHistorySize(v: Int) = prefs.edit().putInt("history_size", v).apply()
+    fun setLibrarySortOrder(v: String) = prefs.edit().putString("library_sort_order", v).apply()
     fun setProviderFallback(v: Boolean) = prefs.edit().putBoolean("provider_fallback", v).apply()
     fun setPlayerDecoder(v: String) = prefs.edit().putString("player_decoder", v).apply()
     fun setGestureVolume(v: Boolean) = prefs.edit().putBoolean("gesture_volume", v).apply()
