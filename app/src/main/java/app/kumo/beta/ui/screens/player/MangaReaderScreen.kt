@@ -25,7 +25,9 @@ fun MangaReaderScreen(
     title: Title,
     chapter: Chapter,
     chapterResolver: ChapterResolver,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onPreviousChapter: () -> Unit = {},
+    onNextChapter: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val settings = remember { SettingsPreferencesStore(context).get() }
@@ -128,6 +130,10 @@ fun MangaReaderScreen(
                             .padding(vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        OutlinedButton(onClick = onPreviousChapter) {
+                            Text("Prev chapter")
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = {
                                 if (settings.readingDirection.equals("Right to Left", true)) {
@@ -163,6 +169,8 @@ fun MangaReaderScreen(
                             }
                         ) {
                             Text("Next")
+                        }
+                            Button(onClick = onNextChapter) { Text("Next chapter") }
                         }
                     }
                 }
