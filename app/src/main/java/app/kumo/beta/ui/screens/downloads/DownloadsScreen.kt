@@ -20,6 +20,7 @@ fun DownloadsScreen(onPlay: (DownloadItem) -> Unit = {}) {
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
+        manager.reconcile()
         while (true) {
             downloads = manager.getDownloads()
             kotlinx.coroutines.delay(1000)
