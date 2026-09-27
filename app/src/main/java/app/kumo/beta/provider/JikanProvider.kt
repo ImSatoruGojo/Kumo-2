@@ -18,7 +18,6 @@ class JikanProvider : KumoProvider {
         getCatalog(section, MediaType.ANIME)
 
     override suspend fun getCatalog(section: String, type: MediaType): List<KumoSearchResult> {
-        val mediaPath = if (type == MediaType.MANGA) "manga" else "anime"
         val endpoint = when {
             type == MediaType.MANGA && section.lowercase() in setOf("popular", "trending") ->
                 "https://api.jikan.moe/v4/top/manga?filter=bypopularity&limit=20"
@@ -65,6 +64,7 @@ class JikanProvider : KumoProvider {
     }
 
     override suspend fun getEpisodes(title: Title): List<Episode> {
+        if (title.type != MediaType.ANIME) return emptyList()
         val malId = title.id.removePrefix("mal:")
         val result = mutableListOf<Episode>()
         var page = 1
