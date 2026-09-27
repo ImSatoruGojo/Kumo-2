@@ -74,10 +74,13 @@ class JikanProvider : KumoProvider {
             val data = root.optJSONArray("data") ?: break
             for (i in 0 until data.length()) {
                 data.optJSONObject(i)?.let { ep ->
+                    val episodeId = ep.optInt("mal_id", result.size + 1)
                     result += Episode(
-                        id = "jikan:" + malId + ":" + ep.optInt("mal_id", result.size + 1),
-                        number = ep.optInt("mal_id", result.size + 1),
-                        title = ep.optString("title").takeIf { it.isNotBlank() }
+                        id = "jikan:" + malId + ":" + episodeId,
+                        number = episodeId,
+                        title = ep.optString("title").takeIf { it.isNotBlank() },
+                        providerIds = listOf(id),
+                        providerEpisodeIds = mapOf(id to ("jikan:" + malId + ":" + episodeId))
                     )
                 }
             }
