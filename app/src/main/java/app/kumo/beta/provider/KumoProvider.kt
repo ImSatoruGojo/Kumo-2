@@ -40,10 +40,12 @@ interface KumoProvider {
     val supportedTypes: Set<MediaType>
 
     suspend fun search(query: String): List<KumoSearchResult>
+    suspend fun search(query: String, type: MediaType): List<KumoSearchResult> = search(query)
     suspend fun load(title: Title): Title
     suspend fun getEpisodes(title: Title): List<Episode>
     suspend fun getSources(episode: Episode): List<KumoStreamSource>
     suspend fun getSubtitles(source: KumoStreamSource): List<KumoSubtitle>
     suspend fun getChapterPages(chapter: Chapter): List<String> = emptyList()
     suspend fun getCatalog(section: String): List<KumoSearchResult> = emptyList()
+    suspend fun getCatalog(section: String, type: MediaType): List<KumoSearchResult> = getCatalog(section)
 }
