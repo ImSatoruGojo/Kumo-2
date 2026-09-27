@@ -19,9 +19,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.kumo.beta.data.CatalogStore
 import app.kumo.beta.data.local.PreferencesManager
 import app.kumo.beta.model.MediaType
 import app.kumo.beta.model.Title
@@ -37,41 +39,57 @@ fun SearchScreen(
     openFiltersInitially: Boolean = false,
     initialQuery: String = ""
 ) {
+    val context = LocalContext.current
     var query by remember { mutableStateOf(initialQuery) }
     var results by remember { mutableStateOf<List<Title>>(emptyList()) }
     var selectedType by remember { mutableStateOf<MediaType?>(null) }
     var selectedGenre by remember { mutableStateOf<String?>(null) }
     var showFilters by remember { mutableStateOf(openFiltersInitially) }
     var searching by remember { mutableStateOf(false) }
-    val preferencesManager = remember { PreferencesManager(LocalContext.current) }
+
+    val preferencesManager = remember { PreferencesManager(context) }
     var searchHistory by remember { mutableStateOf(preferencesManager.searchHistory) }
 
     val voiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
             if (!spoken.isNullOrBlank()) query = spoken
         }
     }
 
-    LaunchedEffect(query) {
-        if (query.isBlank()) {
-            results = providerEngine.catalog("popular").map { it.title }
+    LaunchedEffect(query, selectedType) {
+        val normalized = query.trim()
+        if (normalized.isBlank()) {
+            searching = false
+            results = runCatching {
+                providerEngine.catalog("popular", selectedType)
+                    .map { it.title }
+                    .also(CatalogStore::putAll)
+            }.getOrDefault(emptyList())
             return@LaunchedEffect
         }
-        }
-        delay(250)
+
+        delay(300)
         searching = true
-        preferencesManager.addSearchQuery(query)
-        searchHistory = preferencesManager.searchHistory
-        val providerResults = runCatching { providerEngine.search(query) }.getOrDefault(emptyList()).map { it.title }
-        results = (providerResults + localResults)
+
+        val providerResults = runCatching {
+            providerEngine.search(normalized, selectedType)
+        }.getOrDefault(emptyList()).map { it.title }
+
+        results = providerResults
             .distinctBy { it.id }
+            .also { CatalogStore.putAll(it) }
+
+        preferencesManager.addSearchQuery(normalized)
+        searchHistory = preferencesManager.searchHistory
         searching = false
     }
 
     val filteredResults = results.filter { title ->
         (selectedType == null || title.type == selectedType) &&
-        (selectedGenre == null || title.genres.any { it.equals(selectedGenre, ignoreCase = true) })
+            (selectedGenre == null || title.genres.any { it.equals(selectedGenre, ignoreCase = true) })
     }
 
     val genres = remember(results) {
@@ -79,7 +97,10 @@ fun SearchScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
@@ -98,17 +119,17 @@ fun SearchScreen(
                 )
             )
             Spacer(Modifier.width(8.dp))
-            IconButton(
-                onClick = { showFilters = true },
-                modifier = Modifier.size(48.dp)
-            ) {
+            IconButton(onClick = { showFilters = true }, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Default.FilterList, "Filter", tint = MaterialTheme.colorScheme.primary)
             }
             IconButton(
                 onClick = {
                     voiceLauncher.launch(
                         Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                            putExtra(
+                                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                            )
                         }
                     )
                 },
@@ -122,8 +143,20 @@ fun SearchScreen(
 
         if (selectedType != null || selectedGenre != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                selectedType?.let { FilterChip(selected = true, onClick = { selectedType = null }, label = { Text(it.name) }) }
-                selectedGenre?.let { FilterChip(selected = true, onClick = { selectedGenre = null }, label = { Text(it) }) }
+                selectedType?.let {
+                    FilterChip(
+                        selected = true,
+                        onClick = { selectedType = null },
+                        label = { Text(it.name) }
+                    )
+                }
+                selectedGenre?.let {
+                    FilterChip(
+                        selected = true,
+                        onClick = { selectedGenre = null },
+                        label = { Text(it) }
+                    )
+                }
             }
             Spacer(Modifier.height(10.dp))
         }
@@ -133,10 +166,22 @@ fun SearchScreen(
         }
 
         if (query.isBlank() && searchHistory.isNotEmpty()) {
-            Text("Recent searches", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+            Text(
+                "Recent searches",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
                 searchHistory.take(5).forEach { recent ->
-                    FilterChip(selected = false, onClick = { query = recent }, label = { Text(recent) })
+                    FilterChip(
+                        selected = false,
+                        onClick = { query = recent },
+                        label = { Text(recent) }
+                    )
                 }
             }
         }
@@ -150,8 +195,14 @@ fun SearchScreen(
         Spacer(Modifier.height(10.dp))
 
         if (filteredResults.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No results found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    if (searching) "Searching…" else "No results found",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
             LazyColumn(
@@ -165,13 +216,37 @@ fun SearchScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TitleCard(title = title, width = 110.dp, height = 150.dp, onClick = { onTitleClick(title) })
+                        TitleCard(
+                            title = title,
+                            width = 110.dp,
+                            height = 150.dp,
+                            onClick = { onTitleClick(title) }
+                        )
                         Column(Modifier.weight(1f)) {
-                            Text(title.title, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text(title.type.name, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
-                            title.year?.let { Text(it.toString(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
+                            Text(
+                                title.title,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                title.type.name,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 12.sp
+                            )
+                            title.year?.let {
+                                Text(
+                                    it.toString(),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp
+                                )
+                            }
                             if (title.genres.isNotEmpty()) {
-                                Text(title.genres.take(3).joinToString(" • "), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Text(
+                                    title.genres.take(3).joinToString(" • "),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp
+                                )
                             }
                         }
                     }
@@ -182,16 +257,33 @@ fun SearchScreen(
 
     if (showFilters) {
         ModalBottomSheet(onDismissRequest = { showFilters = false }) {
-            Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text("Filters", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Text("Type", fontWeight = FontWeight.SemiBold)
                 MediaType.entries.forEach { type ->
-                    FilterChip(selected = selectedType == type, onClick = { selectedType = if (selectedType == type) null else type }, label = { Text(type.name) })
+                    FilterChip(
+                        selected = selectedType == type,
+                        onClick = {
+                            selectedType = if (selectedType == type) null else type
+                        },
+                        label = { Text(type.name) }
+                    )
                 }
                 if (genres.isNotEmpty()) {
                     Text("Genre", fontWeight = FontWeight.SemiBold)
                     genres.take(20).forEach { genre ->
-                        FilterChip(selected = selectedGenre == genre, onClick = { selectedGenre = if (selectedGenre == genre) null else genre }, label = { Text(genre) })
+                        FilterChip(
+                            selected = selectedGenre == genre,
+                            onClick = {
+                                selectedGenre = if (selectedGenre == genre) null else genre
+                            },
+                            label = { Text(genre) }
+                        )
                     }
                 }
                 Spacer(Modifier.height(20.dp))
