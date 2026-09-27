@@ -33,6 +33,7 @@ import app.kumo.beta.data.local.SavedTitleStore
 import app.kumo.beta.extension.ExtensionManager
 import app.kumo.beta.provider.ChapterResolver
 import app.kumo.beta.provider.JikanProvider
+import app.kumo.beta.provider.TvMazeProvider
 import app.kumo.beta.provider.ProviderEngine
 import app.kumo.beta.provider.ProviderHealthStore
 import app.kumo.beta.provider.ProviderRegistry
@@ -82,10 +83,16 @@ fun KumoNavGraph() {
         }
     }
 
-    val providerRegistry = remember { ProviderRegistry().apply { registerProvider(JikanProvider()) } }
+    val providerHealth = remember { ProviderHealthStore(context) }
+    val providerRegistry = remember {
+        ProviderRegistry().apply {
+            registerProvider(JikanProvider())
+            registerProvider(TvMazeProvider())
+        }
+    }
     val extensionManager = remember { ExtensionManager(context, providerRegistry) }
-    val providerEngine = remember { ProviderEngine(providerRegistry) }
-    val sourceResolver = remember { SourceResolver(providerRegistry) }
+    val providerEngine = remember { ProviderEngine(providerRegistry, providerHealth) }
+    val sourceResolver = remember { SourceResolver(providerRegistry, providerHealth) }
     val chapterResolver = remember { ChapterResolver(providerRegistry) }
     val coroutineScope = rememberCoroutineScope()
     val downloadManager = remember { DownloadManager(context) }
