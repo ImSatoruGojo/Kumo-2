@@ -53,6 +53,12 @@ fun DownloadsScreen(onPlay: (DownloadItem) -> Unit = {}) {
                         onDelete = {
                             manager.deleteDownload(item.id)
                             downloads = manager.getDownloads()
+                        },
+                        onRetry = {
+                            scope.launch {
+                                manager.retryDownload(item.id)
+                                downloads = manager.getDownloads()
+                            }
                         }
                     )
                 }
@@ -65,7 +71,8 @@ fun DownloadsScreen(onPlay: (DownloadItem) -> Unit = {}) {
 private fun DownloadRow(
     item: DownloadItem,
     onPlay: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRetry: () -> Unit
 ) {
     val playable = item.status == app.kumo.beta.data.local.DownloadStatus.COMPLETED &&
         !item.fileUri.isNullOrBlank()
@@ -100,12 +107,7 @@ private fun DownloadRow(
                     Button(onClick = onPlay) { Text("Play") }
                 }
                 if (item.status == app.kumo.beta.data.local.DownloadStatus.FAILED || item.status == app.kumo.beta.data.local.DownloadStatus.PAUSED) {
-                    OutlinedButton(onClick = {
-                        scope.launch {
-                            manager.retryDownload(item.id)
-                            downloads = manager.getDownloads()
-                        }
-                    }) {
+                    OutlinedButton(onClick = onRetry) {
                         Text("Retry")
                     }
                 }
