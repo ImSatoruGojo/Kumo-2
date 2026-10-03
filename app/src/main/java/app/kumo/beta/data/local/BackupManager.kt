@@ -15,7 +15,8 @@ class BackupManager(context: Context) {
         "kumo_repositories",
         "kumo_continue_watching_prefs",
         "kumo_provider_health",
-        "kumo_saved_titles"
+        "kumo_saved_titles",
+        "kumo_reader_progress"
     )
 
     fun exportTo(uri: Uri): Result<Unit> = runCatching {
