@@ -183,7 +183,7 @@ class TvMazeProvider : KumoProvider {
     private fun String.stripHtml(): String =
         replace(Regex("<[^>]*>"), "")
             .replace("&amp;", "&")
-            .replace("&quot;", """)
+            .replace("&quot;", "\"")
             .replace("&#39;", "'")
             .trim()
 }
