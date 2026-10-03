@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -578,8 +579,43 @@ private fun SwitchItem(label: String, description: String, checked: Boolean, onC
 
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Text(title, color = KumoTextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
-    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(vertical = 4.dp), content = content)
+    var expanded by remember(title) { mutableStateOf(false) }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp))
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 16.dp, vertical = 15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (expanded) "Tap to collapse" else "Tap to view settings",
+                    color = KumoTextSecondary,
+                    fontSize = 12.sp
+                )
+            }
+            Text(
+                if (expanded) "−" else "+",
+                color = KumoPurple,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        if (expanded) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+            Column(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                content = content
+            )
+        }
+    }
 }
 
 private fun isExtensionUpdateAvailable(extension: ExtensionInfo, installed: app.kumo.beta.repository.InstalledExtension): Boolean {
