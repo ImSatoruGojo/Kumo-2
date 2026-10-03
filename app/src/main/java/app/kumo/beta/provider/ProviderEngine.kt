@@ -106,7 +106,9 @@ class ProviderEngine(private val registry: ProviderRegistry, private val health:
     }
 
     suspend fun episodes(title: Title): Title = withContext(Dispatchers.IO) {
-        val providers = registry.getEnabledProviders().filter { title.type in it.supportedTypes }
+        val providers = registry.getEnabledProviders()
+            .filter { title.type in it.supportedTypes }
+            .filter { health?.canTry(it.id) != false }
         if (providers.isEmpty()) return@withContext title
 
         val loadedTitles = coroutineScope {
