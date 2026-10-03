@@ -4,6 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -37,6 +41,7 @@ fun MangaReaderScreen(
     var error by remember(chapter.id) { mutableStateOf<String?>(null) }
     var loadNonce by remember(chapter.id) { mutableIntStateOf(0) }
     var currentPage by remember(chapter.id) { mutableIntStateOf(progressStore.getPage(chapter.id)) }
+    val verticalListState = rememberLazyListState()
 
     LaunchedEffect(chapter.id, loadNonce) {
         loading = true
@@ -51,6 +56,18 @@ fun MangaReaderScreen(
         if (pages.isNotEmpty()) {
             currentPage = currentPage.coerceIn(0, pages.lastIndex)
             progressStore.savePage(chapter.id, currentPage)
+        }
+    }
+
+    LaunchedEffect(chapter.id, pages, settings.readingMode) {
+        if (pages.isNotEmpty() && !settings.readingMode.equals("Paged", true)) {
+            verticalListState.scrollToItem(currentPage.coerceIn(0, pages.lastIndex))
+            kotlinx.coroutines.flow.snapshotFlow { verticalListState.firstVisibleItemIndex }
+                .distinctUntilChanged()
+                .collect { pageIndex ->
+                    currentPage = pageIndex
+                    progressStore.savePage(chapter.id, pageIndex)
+                }
         }
     }
 
@@ -122,6 +139,7 @@ fun MangaReaderScreen(
             else -> {
                 Column(Modifier.fillMaxSize()) {
                     LazyColumn(
+                        state = verticalListState,
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(vertical = 4.dp)
                     ) {
