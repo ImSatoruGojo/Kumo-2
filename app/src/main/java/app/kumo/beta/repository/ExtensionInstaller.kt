@@ -22,8 +22,14 @@ class ExtensionInstaller(context: Context) {
             directory.mkdirs()
 
             val safeId = extension.id.replace(Regex("[^A-Za-z0-9._-]"), "_")
-            val downloadedName = extension.downloadUrl.substringBefore("?").substringBefore("#").substringAfterLast("/").takeIf { it.contains(".") }
-            val finalName = downloadedName?.take(100) ?: safeId + ".extension"
+            val downloadedName = extension.downloadUrl
+                .substringBefore("?")
+                .substringBefore("#")
+                .substringAfterLast("/")
+                .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                .take(100)
+                .takeIf { it.contains(".") && it != "." && it != ".." }
+            val finalName = downloadedName ?: safeId + ".extension"
             val temp = File(directory, finalName + ".part")
             val finalFile = File(directory, finalName)
 
