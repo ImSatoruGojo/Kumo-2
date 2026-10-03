@@ -6,8 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -62,7 +61,7 @@ fun MangaReaderScreen(
     LaunchedEffect(chapter.id, pages, settings.readingMode) {
         if (pages.isNotEmpty() && !settings.readingMode.equals("Paged", true)) {
             verticalListState.scrollToItem(currentPage.coerceIn(0, pages.lastIndex))
-            kotlinx.coroutines.flow.snapshotFlow { verticalListState.firstVisibleItemIndex }
+            snapshotFlow { verticalListState.firstVisibleItemIndex }
                 .distinctUntilChanged()
                 .collect { pageIndex ->
                     currentPage = pageIndex
