@@ -14,6 +14,7 @@ class ExtensionInstaller(context: Context) {
     private val root = File(context.filesDir, "extensions")
 
     suspend fun install(extension: ExtensionInfo): Result<File> = withContext(Dispatchers.IO) {
+        var partialFile: File? = null
         runCatching {
             require(extension.downloadUrl.startsWith("http://") || extension.downloadUrl.startsWith("https://"))
 
@@ -31,6 +32,7 @@ class ExtensionInstaller(context: Context) {
                 .takeIf { it.contains(".") && it != "." && it != ".." }
             val finalName = downloadedName ?: safeId + ".extension"
             val temp = File(directory, finalName + ".part")
+            partialFile = temp
             val finalFile = File(directory, finalName)
 
 
@@ -86,10 +88,8 @@ class ExtensionInstaller(context: Context) {
                 throw error
             }
         }.onFailure {
-            File(root, extension.type.name.lowercase())
-                .walkTopDown()
-                .filter { it.name.endsWith(".part") }
-                .forEach { it.delete() }
+            // Do not delete partial downloads belonging to other extensions installing concurrently.
+            partialFile?.delete()
         }
     }
 
