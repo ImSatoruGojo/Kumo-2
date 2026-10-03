@@ -95,13 +95,21 @@ fun PlayerScreen(
 
     DisposableEffect(settings.keepScreenOn) {
         val activity = context as? android.app.Activity
+        val window = activity?.window
+        val wasKeepingScreenOn = window?.attributes?.let {
+            (it.flags and android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0
+        } ?: false
         if (settings.keepScreenOn) {
-            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
-            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         onDispose {
-            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            if (wasKeepingScreenOn) {
+                window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
         }
     }
 
@@ -196,7 +204,8 @@ fun PlayerScreen(
         val listener = object : Player.Listener {
             override fun onPlayerError(playbackException: androidx.media3.common.PlaybackException) {
                 val index = sources.indexOfFirst { it.url == source?.url }
-                val fallback = sources.drop(index + 1).firstOrNull()
+                // Never retry the first source when the failing URL is not in the resolved list.
+                val fallback = if (index >= 0) sources.drop(index + 1).firstOrNull() else null
                 if (fallback != null) {
                     error = null
                     selected = fallback
