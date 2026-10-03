@@ -50,21 +50,35 @@ class ExtensionInstaller(context: Context) {
                 }
             }
 
-            if (finalFile.exists()) finalFile.delete()
-            check(temp.renameTo(finalFile)) { "Unable to install extension file" }
+            // Keep the previous installed file until the new file is fully downloaded,
+            // verified, moved into place, and recorded in the install store.
+            val backup = File(directory, finalName + ".bak")
+            if (backup.exists()) backup.delete()
+            val hadPreviousFile = finalFile.exists()
+            if (hadPreviousFile) {
+                check(finalFile.renameTo(backup)) { "Unable to preserve the previous extension version" }
+            }
 
-            val wasEnabled = store.load().firstOrNull { it.id == extension.id }?.enabled ?: true
-            store.upsert(
-                InstalledExtension(
-                    id = extension.id,
-                    packageName = extension.packageName,
-                    filePath = finalFile.absolutePath,
-                    version = extension.version,
-                    versionCode = extension.versionCode,
-                    enabled = wasEnabled
+            try {
+                check(temp.renameTo(finalFile)) { "Unable to install extension file" }
+                val wasEnabled = store.load().firstOrNull { it.id == extension.id }?.enabled ?: true
+                store.upsert(
+                    InstalledExtension(
+                        id = extension.id,
+                        packageName = extension.packageName,
+                        filePath = finalFile.absolutePath,
+                        version = extension.version,
+                        versionCode = extension.versionCode,
+                        enabled = wasEnabled
+                    )
                 )
-            )
-            finalFile
+                backup.delete()
+                finalFile
+            } catch (error: Throwable) {
+                finalFile.delete()
+                if (hadPreviousFile && backup.exists()) backup.renameTo(finalFile)
+                throw error
+            }
         }.onFailure {
             File(root, extension.type.name.lowercase())
                 .walkTopDown()
