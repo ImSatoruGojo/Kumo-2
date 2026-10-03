@@ -251,7 +251,7 @@ fun KumoNavGraph() {
                         },
                         onDownloadEpisode = { episode ->
                             coroutineScope.launch {
-                                val source = sourceResolver.resolve(episode).firstOrNull()
+                                val source = sourceResolver.resolve(episode, allowFallback = settingsStore.get().providerFallback).firstOrNull()
                                 if (source == null) {
                                     Toast.makeText(context, "No downloadable source available", Toast.LENGTH_SHORT).show()
                                 } else {
