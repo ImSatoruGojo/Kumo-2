@@ -186,8 +186,12 @@ class ProviderEngine(private val registry: ProviderRegistry, private val health:
     }
 
     private fun mergeTitles(results: List<KumoSearchResult>): List<KumoSearchResult> {
-        val grouped = results.groupBy {
-            it.title.type.name + ":" + normalize(it.title.title)
+        val grouped = results.groupBy { result ->
+            val normalizedTitle = normalize(result.title.title)
+            val identity = normalizedTitle.ifBlank {
+                result.providerId + ":" + result.title.id
+            }
+            result.title.type.name + ":" + identity
         }
         return grouped.values.mapNotNull { group ->
             val best = group.maxByOrNull { score(it.title) } ?: return@mapNotNull null
