@@ -41,6 +41,7 @@ class DownloadManager(context: Context) {
     private val settings = SettingsPreferencesStore(appContext)
     private val downloadSlots = java.util.concurrent.Semaphore(12, true)
 
+    @Synchronized
     fun getDownloads(): List<DownloadItem> {
         val raw = prefs.getString("custom_dls", null) ?: return emptyList()
         return runCatching {
@@ -228,6 +229,7 @@ class DownloadManager(context: Context) {
 
     fun resumeDownload(id: String) = update(id) { it.copy(status = DownloadStatus.DOWNLOADING, speed = "Downloading", eta = "Active") }
 
+    @Synchronized
     fun deleteDownload(id: String) {
         val current = getDownloads().toMutableList()
         current.firstOrNull { it.id == id }?.fileUri?.let { runCatching {
@@ -237,14 +239,17 @@ class DownloadManager(context: Context) {
         saveDownloads(current)
     }
 
+    @Synchronized
     private fun update(id: String, transform: (DownloadItem) -> DownloadItem) {
         saveDownloads(getDownloads().map { if (it.id == id) transform(it) else it })
     }
 
+    @Synchronized
     private fun upsert(item: DownloadItem) {
         saveDownloads(getDownloads().filterNot { it.id == item.id } + item)
     }
 
+    @Synchronized
     private fun saveDownloads(items: List<DownloadItem>) {
         val array = JSONArray()
         items.forEach { d ->
