@@ -81,22 +81,26 @@ class ProviderEngine(private val registry: ProviderRegistry, private val health:
             .filter { title.providerIds.isEmpty() || it.id in title.providerIds }
 
         for (provider in providers) {
+            if (health?.canTry(provider.id) == false) continue
             val providerTitleId = title.providerTitleIds[provider.id] ?: title.id
             val scopedTitle = title.copy(id = providerTitleId)
-            runCatching { provider.load(scopedTitle) }
-                .getOrNull()
-                ?.takeIf { it.title.isNotBlank() }
-                ?.let { loaded ->
-                    return@withContext loaded.copy(
-                        id = title.id,
-                        providerIds = title.providerIds.ifEmpty { listOf(provider.id) },
-                        providerTitleIds = if (title.providerTitleIds.isEmpty()) {
-                            mapOf(provider.id to providerTitleId)
-                        } else {
-                            title.providerTitleIds
-                        }
-                    )
-                }
+            val result = withTimeoutOrNull(12_000L) {
+                runCatching { provider.load(scopedTitle) }
+            }
+            val loaded = result?.getOrNull()?.takeIf { it.title.isNotBlank() }
+            if (loaded != null) {
+                health?.markSuccess(provider.id)
+                return@withContext loaded.copy(
+                    id = title.id,
+                    providerIds = title.providerIds.ifEmpty { listOf(provider.id) },
+                    providerTitleIds = if (title.providerTitleIds.isEmpty()) {
+                        mapOf(provider.id to providerTitleId)
+                    } else {
+                        title.providerTitleIds
+                    }
+                )
+            }
+            health?.markFailure(provider.id)
         }
         title
     }
@@ -201,8 +205,11 @@ class ProviderEngine(private val registry: ProviderRegistry, private val health:
         }
     }
 
-    private fun normalize(value: String) =
-        value.lowercase().replace(Regex("[^a-z0-9]+"), " ").trim()
+    private fun normalize(value: String): String =
+        value.lowercase()
+            .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+            .trim()
+            .replace(Regex("\\s+"), " ")
 
     private fun score(title: Title) =
         (title.rating?.times(10f)?.toInt() ?: 0) + if (title.posterUrl != null) 5 else 0
